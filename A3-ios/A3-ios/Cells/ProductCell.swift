@@ -11,6 +11,15 @@ class ProductCell: UITableViewCell {
         return lbl
     }()
 
+    let descriptionLabel: UILabel = {
+        let lbl = UILabel()
+        lbl.font = UIFont.systemFont(ofSize: 12)
+        lbl.textColor = .secondaryLabel
+        lbl.numberOfLines = 1
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
     let priceLabel: UILabel = {
         let lbl = UILabel()
         lbl.font = UIFont.systemFont(ofSize: 13)
@@ -41,11 +50,15 @@ class ProductCell: UITableViewCell {
         contentView.addSubview(nameLabel)
         contentView.addSubview(priceLabel)
         contentView.addSubview(categoryLabel)
+        contentView.addSubview(descriptionLabel)
         NSLayoutConstraint.activate([
             nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             nameLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            priceLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 3),
+            descriptionLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
+            descriptionLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            descriptionLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            priceLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 3),
             priceLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             priceLabel.trailingAnchor.constraint(equalTo: categoryLabel.leadingAnchor, constant: -8),
             priceLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
@@ -57,7 +70,14 @@ class ProductCell: UITableViewCell {
 
     func configure(with product: Product) {
         nameLabel.text = product.name
+        descriptionLabel.text = product.description.isEmpty ? nil : product.description
+        descriptionLabel.isHidden = product.description.isEmpty
         priceLabel.text = String(format: "$%.2f / sqm", product.pricePerSqm)
-        categoryLabel.text = product.category.capitalized
+        let varCount = product.variants.count
+        if varCount > 0 {
+            categoryLabel.text = "\(product.category.capitalized) • \(varCount) variants"
+        } else {
+            categoryLabel.text = product.category.capitalized
+        }
     }
 }
