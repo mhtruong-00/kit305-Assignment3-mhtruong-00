@@ -33,6 +33,7 @@ class RoomListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = house.name
+        navigationItem.largeTitleDisplayMode = .never
         navigationItem.backButtonTitle = ""
         setupNavigationBar()
         setupSearchController()
