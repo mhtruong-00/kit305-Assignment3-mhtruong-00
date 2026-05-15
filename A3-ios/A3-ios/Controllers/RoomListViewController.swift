@@ -11,6 +11,17 @@ class RoomListViewController: UITableViewController {
     private var listener: ListenerRegistration?
     private let searchController = UISearchController(searchResultsController: nil)
 
+    private let emptyLabel: UILabel = {
+        let lbl = UILabel()
+        lbl.text = "No rooms yet.\nTap + to add a room."
+        lbl.textAlignment = .center
+        lbl.numberOfLines = 0
+        lbl.textColor = .secondaryLabel
+        lbl.font = UIFont.systemFont(ofSize: 16)
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
     private var isSearching: Bool {
         return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
     }
@@ -57,6 +68,16 @@ class RoomListViewController: UITableViewController {
         tableView.register(RoomCell.self, forCellReuseIdentifier: RoomCell.reuseIdentifier)
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 50
+        tableView.backgroundView = emptyLabel
+        NSLayoutConstraint.activate([
+            emptyLabel.centerXAnchor.constraint(equalTo: tableView.centerXAnchor),
+            emptyLabel.centerYAnchor.constraint(equalTo: tableView.centerYAnchor),
+            emptyLabel.widthAnchor.constraint(equalTo: tableView.widthAnchor, multiplier: 0.8)
+        ])
+    }
+
+    private func updateEmptyState() {
+        emptyLabel.isHidden = !displayedRooms.isEmpty
     }
 
     private func startListening() {
@@ -64,6 +85,7 @@ class RoomListViewController: UITableViewController {
         listener = FirestoreService.shared.listenToRooms(houseId: house.id) { [weak self] rooms in
             self?.rooms = rooms
             self?.tableView.reloadData()
+            self?.updateEmptyState()
         }
     }
 
