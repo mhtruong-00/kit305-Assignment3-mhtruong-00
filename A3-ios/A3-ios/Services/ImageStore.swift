@@ -6,7 +6,7 @@ class ImageStore {
     private init() {}
 
     // Compress and encode UIImage to a base64 JPEG string for Firestore storage
-    func encodeImage(_ image: UIImage, compressionQuality: CGFloat = 0.5) -> String? {
+    func encodeImage(_ image: UIImage, compressionQuality: CGFloat = 0.3) -> String? {
         guard let data = image.jpegData(compressionQuality: compressionQuality) else { return nil }
         return data.base64EncodedString()
     }
