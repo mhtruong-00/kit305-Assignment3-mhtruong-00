@@ -12,6 +12,7 @@ class CSVExporter {
         lines.append("Interior Design Quote")
         lines.append("House: \(escapeCSV(houseName))")
         lines.append("Address: \(escapeCSV(address))")
+        lines.append("Generated: \(DateFormatter.displayFormatter.string(from: Date()))")
         lines.append("")
         lines.append("Room,Type,Product,Variant,Width (cm),Height/Length (cm),Area (sqm),Price/sqm,Item Price,Included")
 
