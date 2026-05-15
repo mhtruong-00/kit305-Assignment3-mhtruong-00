@@ -76,7 +76,7 @@ class QuoteLineCell: UITableViewCell {
     }
 
     func configure(with item: QuoteLineItem) {
-        let typeIcon = item.itemType == "window" ? "⬜" : "🟫"
+        let typeIcon = item.itemType == .window ? "⬜" : "🟫"
         roomLabel.text = "\(typeIcon) \(item.roomName.uppercased())"
         let varStr = item.variantName.isEmpty ? "" : " — \(item.variantName)"
         let typeStr = item.typeLabel
