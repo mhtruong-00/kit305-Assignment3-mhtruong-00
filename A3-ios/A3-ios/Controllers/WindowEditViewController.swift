@@ -295,8 +295,10 @@ class WindowEditViewController: UIViewController {
                                     pricePerSqm: pricePerSqm, photoBase64: photoBase64)
             FirestoreService.shared.addWindow(window, houseId: house.id, roomId: room.id) { [weak self] error in
                 if let error = error {
+                    HapticFeedback.error()
                     self?.showAlert(title: "Error", message: error.localizedDescription)
                 } else {
+                    HapticFeedback.success()
                     self?.navigationController?.popViewController(animated: true)
                 }
             }
