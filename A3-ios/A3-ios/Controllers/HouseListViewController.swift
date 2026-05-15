@@ -31,6 +31,8 @@ class HouseListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Houses"
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .always
         navigationItem.backButtonTitle = ""
         setupNavigationBar()
         setupSearchController()
