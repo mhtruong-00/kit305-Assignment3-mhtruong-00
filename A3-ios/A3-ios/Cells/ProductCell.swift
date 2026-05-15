@@ -36,7 +36,7 @@ class ProductCell: UITableViewCell {
         return lbl
     }()
 
-    let compatibilityLabel: UILabel = {
+    private static let incompatibleAlpha: CGFloat = 0.45
         let lbl = UILabel()
         lbl.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         lbl.numberOfLines = 0
@@ -105,7 +105,7 @@ class ProductCell: UITableViewCell {
             } else {
                 compatibilityLabel.text = "✗ \(compat.message)"
                 compatibilityLabel.textColor = .systemRed
-                contentView.alpha = 0.45
+                contentView.alpha = ProductCell.incompatibleAlpha
                 accessoryType = .none
             }
         } else {

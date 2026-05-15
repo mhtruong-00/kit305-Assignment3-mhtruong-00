@@ -105,6 +105,7 @@ class ProductAPI {
         let maxWidth = intCoerce(dict["max_width"] ?? dict["maxWidth"]) ?? 9999
         let minHeight = intCoerce(dict["min_height"] ?? dict["minHeight"]) ?? 0
         let maxHeight = intCoerce(dict["max_height"] ?? dict["maxHeight"]) ?? 9999
+        // max_panels is the API key; maxPanels and maxPanelCount are accepted for forward-compatibility
         let maxPanelCount = intCoerce(dict["max_panels"] ?? dict["maxPanels"] ?? dict["maxPanelCount"]) ?? 1
 
         return Product(
