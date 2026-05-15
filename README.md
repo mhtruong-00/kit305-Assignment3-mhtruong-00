@@ -124,4 +124,4 @@ Copilot was used as a code assistant; all generated code was reviewed and adapte
 - Platform: iOS 16+, tested on iPhone 15 Simulator (iOS 17)
 - No SwiftUI, no Objective-C, no third-party libraries (Firebase only)
 - Photos: Gallery only (PHPickerViewController / UIImagePickerController), no camera
-- Git commit history: 100+ small, meaningful commits
+- Git commit history: 100+ small, meaningful commits tracking feature additions, UI polish, validation, haptic feedback, keyboard handling, empty states, animations, and code quality improvements
