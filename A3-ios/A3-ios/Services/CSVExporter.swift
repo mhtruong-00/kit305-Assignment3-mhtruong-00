@@ -5,6 +5,7 @@ class CSVExporter {
     static let shared = CSVExporter()
     private init() {}
 
+    /// Generates CSV rows for all items, with a summary footer.
     func generateCSV(houseName: String, address: String,
                      items: [QuoteLineItem], discountPercent: Double) -> String {
         var lines: [String] = []
