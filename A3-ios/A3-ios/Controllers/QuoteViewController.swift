@@ -232,6 +232,6 @@ extension QuoteViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return lineItems.isEmpty ? nil : "Items (\(lineItems.count))"
+        return lineItems.isEmpty ? "No items found. Add windows and floor spaces to rooms first." : "Items (\(lineItems.count))"
     }
 }
