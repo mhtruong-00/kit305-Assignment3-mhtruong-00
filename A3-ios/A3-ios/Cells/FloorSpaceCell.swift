@@ -62,7 +62,8 @@ class FloorSpaceCell: UITableViewCell {
     func configure(with floor: FloorSpace) {
         let prodStr = floor.productName.isEmpty ? "No product" : floor.productName
         let varStr = floor.variantName.isEmpty ? "" : "\n\(floor.variantName)"
-        infoLabel.text = "\(Int(floor.widthCm))W × \(Int(floor.lengthCm))L cm — \(prodStr)\(varStr)"
+        let area = String(format: "%.3f sqm", floor.areaSqm)
+        infoLabel.text = "\(Int(floor.widthCm))W × \(Int(floor.lengthCm))L cm  [\(area)] — \(prodStr)\(varStr)"
         if floor.pricePerSqm > 0 {
             priceLabel.text = String(format: "$%.2f", floor.itemPrice)
         } else {
