@@ -62,9 +62,11 @@ class QuoteViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = "Quote — \(house.name)"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .action,
-                                                            target: self,
-                                                            action: #selector(shareTapped))
+        navigationItem.backButtonTitle = ""
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareTapped)),
+            UIBarButtonItem(title: "Select All", style: .plain, target: self, action: #selector(toggleSelectAll))
+        ]
         setupLayout()
         loadQuoteData()
 
@@ -149,6 +151,17 @@ class QuoteViewController: UIViewController {
         } else {
             totalLabel.text = String(format: "Total: $%.2f", total)
         }
+    }
+
+    @objc private func toggleSelectAll() {
+        let allIncluded = lineItems.allSatisfy { $0.isIncluded }
+        for i in 0..<lineItems.count {
+            lineItems[i].isIncluded = !allIncluded
+        }
+        tableView.reloadData()
+        updateSummary()
+        let selectAllBtn = navigationItem.rightBarButtonItems?.last
+        selectAllBtn?.title = allIncluded ? "Select All" : "Deselect All"
     }
 
     @objc private func applyDiscount() {
