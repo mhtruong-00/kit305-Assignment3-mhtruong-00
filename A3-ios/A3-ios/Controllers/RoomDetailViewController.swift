@@ -129,6 +129,7 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
         btn.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         btn.tag = section
         btn.addTarget(self, action: #selector(addItemTapped(_:)), for: .touchUpInside)
+        btn.tintColor = section == 0 ? .windowTint : .floorTint
         footer.addSubview(btn)
         NSLayoutConstraint.activate([
             btn.centerXAnchor.constraint(equalTo: footer.centerXAnchor),
