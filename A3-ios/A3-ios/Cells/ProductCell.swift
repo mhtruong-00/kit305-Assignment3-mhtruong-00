@@ -22,8 +22,8 @@ class ProductCell: UITableViewCell {
 
     let priceLabel: UILabel = {
         let lbl = UILabel()
-        lbl.font = UIFont.systemFont(ofSize: 13)
-        lbl.textColor = .secondaryLabel
+        lbl.font = UIFont.monospacedSystemFont(ofSize: 13, weight: .medium)
+        lbl.textColor = .productTint
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
