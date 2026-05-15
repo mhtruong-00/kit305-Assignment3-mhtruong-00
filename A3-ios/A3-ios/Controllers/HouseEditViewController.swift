@@ -139,11 +139,9 @@ class HouseEditViewController: UIViewController {
                 if let error = error {
                     self?.showAlert(title: "Error", message: error.localizedDescription)
                 } else {
+                    HapticFeedback.success()
                     self?.onSave?()
                     self?.navigationController?.popViewController(animated: true)
-                }
-            }
-        case .edit(var house):
             house.name = trimmedName
             house.address = address
             FirestoreService.shared.updateHouse(house) { [weak self] error in
