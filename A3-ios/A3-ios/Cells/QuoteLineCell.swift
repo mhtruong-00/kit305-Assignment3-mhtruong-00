@@ -76,12 +76,13 @@ class QuoteLineCell: UITableViewCell {
     }
 
     func configure(with item: QuoteLineItem) {
-        roomLabel.text = item.roomName.uppercased()
+        let typeIcon = item.itemType == "window" ? "⬜" : "🟫"
+        roomLabel.text = "\(typeIcon) \(item.roomName.uppercased())"
         let varStr = item.variantName.isEmpty ? "" : " — \(item.variantName)"
         let typeStr = item.typeLabel
         descriptionLabel.text = "\(typeStr): \(item.dimensionLabel)\n\(item.productName)\(varStr)"
         priceLabel.text = item.isIncluded ? item.priceLabel : "-"
-        priceLabel.textColor = item.isIncluded ? .label : .secondaryLabel
+        priceLabel.textColor = item.isIncluded ? .systemGreen : .secondaryLabel
         includeSwitch.isOn = item.isIncluded
         contentView.alpha = item.isIncluded ? 1.0 : 0.5
     }
