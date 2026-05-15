@@ -85,10 +85,76 @@ class FirestoreService {
         )
     }
 
-    private func roomData(from room: Room) -> [String: Any] {
-        return [
-            "name": room.name,
-            "createdAt": Timestamp(date: room.createdAt)
+    // MARK: - Windows
+
+    func listenToWindows(houseId: String, roomId: String,
+                         completion: @escaping ([WindowItem]) -> Void) -> ListenerRegistration {
+        return db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("windows")
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let documents = snapshot?.documents else {
+                    completion([])
+                    return
+                }
+                let items = documents.compactMap { self?.windowFrom(doc: $0, roomId: roomId) }
+                completion(items)
+            }
+    }
+
+    func addWindow(_ window: WindowItem, houseId: String, roomId: String,
+                   completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("windows")
+            .addDocument(data: windowData(from: window), completion: completion)
+    }
+
+    func updateWindow(_ window: WindowItem, houseId: String, roomId: String,
+                      completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("windows").document(window.id)
+            .updateData(windowData(from: window), completion: completion)
+    }
+
+    func deleteWindow(_ windowId: String, houseId: String, roomId: String,
+                      completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("windows").document(windowId)
+            .delete(completion: completion)
+    }
+
+    private func windowFrom(doc: DocumentSnapshot, roomId: String) -> WindowItem? {
+        guard let data = doc.data() else { return nil }
+        return WindowItem(
+            id: doc.documentID,
+            roomId: roomId,
+            widthCm: data["widthCm"] as? Double ?? 0,
+            heightCm: data["heightCm"] as? Double ?? 0,
+            productId: data["productId"] as? String ?? "",
+            variantId: data["variantId"] as? String ?? "",
+            productName: data["productName"] as? String ?? "",
+            variantName: data["variantName"] as? String ?? "",
+            pricePerSqm: data["pricePerSqm"] as? Double ?? 0,
+            photoBase64: data["photoBase64"] as? String
+        )
+    }
+
+    private func windowData(from window: WindowItem) -> [String: Any] {
+        var data: [String: Any] = [
+            "widthCm": window.widthCm,
+            "heightCm": window.heightCm,
+            "productId": window.productId,
+            "variantId": window.variantId,
+            "productName": window.productName,
+            "variantName": window.variantName,
+            "pricePerSqm": window.pricePerSqm
         ]
+        if let photo = window.photoBase64 {
+            data["photoBase64"] = photo
+        }
+        return data
     }
 }
