@@ -24,7 +24,9 @@ class FirestoreService {
     }
 
     func addHouse(_ house: House, completion: @escaping (Error?) -> Void) {
-        db.collection("houses").addDocument(data: houseData(from: house), completion: completion)
+        var data = houseData(from: house)
+        data["createdAt"] = house.createdAt
+        db.collection("houses").addDocument(data: data, completion: completion)
     }
 
     func updateHouse(_ house: House, completion: @escaping (Error?) -> Void) {
@@ -45,6 +47,13 @@ class FirestoreService {
         )
     }
 
+    private func houseData(from house: House) -> [String: Any] {
+        return [
+            "name": house.name,
+            "address": house.address
+        ]
+    }
+
     // MARK: - Rooms
 
     func listenToRooms(houseId: String, completion: @escaping ([Room]) -> Void) -> ListenerRegistration {
@@ -61,8 +70,10 @@ class FirestoreService {
     }
 
     func addRoom(_ room: Room, houseId: String, completion: @escaping (Error?) -> Void) {
+        var data = roomData(from: room)
+        data["createdAt"] = room.createdAt
         db.collection("houses").document(houseId).collection("rooms")
-            .addDocument(data: roomData(from: room), completion: completion)
+            .addDocument(data: data, completion: completion)
     }
 
     func updateRoom(_ room: Room, houseId: String, completion: @escaping (Error?) -> Void) {
@@ -83,6 +94,12 @@ class FirestoreService {
             name: data["name"] as? String ?? "",
             createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
         )
+    }
+
+    private func roomData(from room: Room) -> [String: Any] {
+        return [
+            "name": room.name
+        ]
     }
 
     // MARK: - Windows
@@ -152,6 +169,12 @@ class FirestoreService {
             "variantName": window.variantName,
             "pricePerSqm": window.pricePerSqm
         ]
+        if let photo = window.photoBase64 {
+            data["photoBase64"] = photo
+        }
+        return data
+    }
+
     // MARK: - Floor Spaces
 
     func listenToFloorSpaces(houseId: String, roomId: String,
