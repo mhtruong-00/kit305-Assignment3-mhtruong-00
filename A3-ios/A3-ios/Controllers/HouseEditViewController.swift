@@ -40,6 +40,13 @@ class HouseEditViewController: UIViewController {
         return btn
     }()
 
+    private let cancelButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("Cancel", for: .normal)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
@@ -64,6 +71,7 @@ class HouseEditViewController: UIViewController {
         view.addSubview(addressLabel)
         view.addSubview(addressField)
         view.addSubview(saveButton)
+        view.addSubview(cancelButton)
 
         NSLayoutConstraint.activate([
             nameLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24),
@@ -83,10 +91,13 @@ class HouseEditViewController: UIViewController {
             saveButton.topAnchor.constraint(equalTo: addressField.bottomAnchor, constant: 32),
             saveButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             saveButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            saveButton.heightAnchor.constraint(equalToConstant: 50)
+            saveButton.heightAnchor.constraint(equalToConstant: 50),
+            cancelButton.topAnchor.constraint(equalTo: saveButton.bottomAnchor, constant: 12),
+            cancelButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
 
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
+        cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
     }
 
     private func populateIfEditing() {
@@ -103,6 +114,10 @@ class HouseEditViewController: UIViewController {
         lbl.textColor = .secondaryLabel
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
+    }
+
+    @objc private func cancelTapped() {
+        navigationController?.popViewController(animated: true)
     }
 
     @objc private func dismissKeyboard() {
