@@ -31,6 +31,7 @@ class HouseListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Houses"
+        navigationItem.backButtonTitle = ""
         setupNavigationBar()
         setupSearchController()
         setupTableView()
