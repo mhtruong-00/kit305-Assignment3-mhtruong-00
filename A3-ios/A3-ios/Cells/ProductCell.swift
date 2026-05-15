@@ -36,13 +36,15 @@ class ProductCell: UITableViewCell {
         return lbl
     }()
 
-    private static let incompatibleAlpha: CGFloat = 0.45
+    let compatibilityLabel: UILabel = {
         let lbl = UILabel()
         lbl.font = UIFont.systemFont(ofSize: 12, weight: .medium)
         lbl.numberOfLines = 0
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
+
+    private static let incompatibleAlpha: CGFloat = 0.45
 
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
