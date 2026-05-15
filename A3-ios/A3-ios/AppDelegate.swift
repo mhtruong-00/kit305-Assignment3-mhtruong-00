@@ -1,10 +1,11 @@
+// With support from GitHub Copilot
+// KIT305 Assignment 3 — iOS Interior Design Quoting App
+// Student: mhtruong-00
+// Unit: KIT305, University of Tasmania
+// Semester 1, 2026
 //
-//  AppDelegate.swift
-//  A3-ios
-//
-//  Created by mobiledev on 15/5/2026.
-//
-
+// AppDelegate: Application entry point.
+// Configures Firebase and Firestore on launch.
 import UIKit
 import FirebaseCore
 import FirebaseFirestore
