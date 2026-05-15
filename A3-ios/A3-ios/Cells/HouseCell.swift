@@ -15,6 +15,7 @@ class HouseCell: UITableViewCell {
         let lbl = UILabel()
         lbl.font = UIFont.systemFont(ofSize: 14)
         lbl.textColor = .secondaryLabel
+        lbl.numberOfLines = 2
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
