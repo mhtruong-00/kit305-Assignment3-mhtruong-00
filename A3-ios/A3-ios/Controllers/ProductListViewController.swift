@@ -23,6 +23,14 @@ class ProductListViewController: UITableViewController {
         return lbl
     }()
 
+    private var categoryTitle: String {
+        switch category {
+        case "window": return "Window Products"
+        case "floor": return "Floor Products"
+        default: return "Select Product"
+        }
+    }
+
     private var isSearching: Bool {
         return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
     }
@@ -32,7 +40,7 @@ class ProductListViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Select Product"
+        title = categoryTitle
         navigationItem.backButtonTitle = ""
         setupSearch()
         setupTableView()
