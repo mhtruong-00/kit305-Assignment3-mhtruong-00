@@ -122,6 +122,9 @@ class WindowEditViewController: UIViewController {
         widthField.addTarget(self, action: #selector(dimensionsChanged), for: .editingChanged)
         heightField.addTarget(self, action: #selector(dimensionsChanged), for: .editingChanged)
 
+        widthField.addDoneInputAccessory(target: self, action: #selector(dismissKeyboard))
+        heightField.addDoneInputAccessory(target: self, action: #selector(dismissKeyboard))
+
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)),
                                                name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)),
