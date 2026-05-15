@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AAA00003 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AAA00002 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5CF351C72FB6BED300C255F3 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AAA00003 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,8 +130,8 @@
 			);
 			name = "A3-ios";
 			packageProductDependencies = (
+				AAA00002 /* FirebaseFirestore */,
 			);
-			productName = "A3-ios";
 			productReference = 5CF351B02FB6BED000C255F3 /* A3-ios.app */;
 			productType = "com.apple.product-type.application";
 		};
@@ -212,6 +217,9 @@
 			productRefGroup = 5CF351B12FB6BED000C255F3 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
+			packageReferences = (
+				AAA00001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			targets = (
 				5CF351AF2FB6BED000C255F3 /* A3-ios */,
 				5CF351C52FB6BED300C255F3 /* A3-iosTests */,
@@ -281,7 +289,26 @@
 		};
 /* End PBXTargetDependency section */
 
-/* Begin XCBuildConfiguration section */
+/* Begin XCRemoteSwiftPackageReference section */
+		AAA00001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.29.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AAA00002 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AAA00001 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+
 		5CF351DA2FB6BED300C255F3 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
