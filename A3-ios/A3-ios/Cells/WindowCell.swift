@@ -14,8 +14,8 @@ class WindowCell: UITableViewCell {
 
     let priceLabel: UILabel = {
         let lbl = UILabel()
-        lbl.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        lbl.textColor = .systemBlue
+        lbl.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .medium)
+        lbl.textColor = .systemGreen
         lbl.textAlignment = .right
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
