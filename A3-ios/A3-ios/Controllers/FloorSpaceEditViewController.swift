@@ -122,6 +122,9 @@ class FloorSpaceEditViewController: UIViewController {
         widthField.addTarget(self, action: #selector(dimensionsChanged), for: .editingChanged)
         lengthField.addTarget(self, action: #selector(dimensionsChanged), for: .editingChanged)
 
+        widthField.addDoneInputAccessory(target: self, action: #selector(dismissKeyboard))
+        lengthField.addDoneInputAccessory(target: self, action: #selector(dismissKeyboard))
+
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow(_:)),
                                                name: UIResponder.keyboardWillShowNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide(_:)),
