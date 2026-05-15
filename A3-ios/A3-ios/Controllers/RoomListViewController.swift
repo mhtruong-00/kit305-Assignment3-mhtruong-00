@@ -131,7 +131,7 @@ class RoomListViewController: UITableViewController {
         return cell
     }
 
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
         return section == 0 ? "Rooms" : nil
     }
 
