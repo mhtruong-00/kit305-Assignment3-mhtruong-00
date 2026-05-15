@@ -146,11 +146,14 @@ class QuoteViewController: UIViewController {
     private func updateSummary() {
         let subtotal = QuoteCalculator.shared.subtotal(from: lineItems)
         let total = QuoteCalculator.shared.total(from: lineItems, discountPercent: discountPercent)
-        subtotalLabel.text = String(format: "Subtotal: $%.2f", subtotal)
+        let includedCount = lineItems.filter { $0.isIncluded }.count
+        subtotalLabel.text = String(format: "Subtotal (%d items): $%.2f", includedCount, subtotal)
         if discountPercent > 0 {
             totalLabel.text = String(format: "Total: $%.2f  (%.1f%% off)", total, discountPercent)
+            totalLabel.textColor = .systemGreen
         } else {
             totalLabel.text = String(format: "Total: $%.2f", total)
+            totalLabel.textColor = .label
         }
     }
 
