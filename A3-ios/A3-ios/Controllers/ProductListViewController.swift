@@ -13,6 +13,16 @@ class ProductListViewController: UITableViewController {
     private let searchController = UISearchController(searchResultsController: nil)
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
 
+    private let emptyLabel: UILabel = {
+        let lbl = UILabel()
+        lbl.text = "No products found."
+        lbl.textAlignment = .center
+        lbl.textColor = .secondaryLabel
+        lbl.font = UIFont.systemFont(ofSize: 16)
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
     private var isSearching: Bool {
         return searchController.isActive && !(searchController.searchBar.text?.isEmpty ?? true)
     }
@@ -46,10 +56,18 @@ class ProductListViewController: UITableViewController {
     private func setupActivityIndicator() {
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(activityIndicator)
+        view.addSubview(emptyLabel)
         NSLayoutConstraint.activate([
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
+        emptyLabel.isHidden = true
+    }
+
+    private func updateEmptyState() {
+        emptyLabel.isHidden = !displayedProducts.isEmpty || activityIndicator.isAnimating
     }
 
     private func loadProducts() {
@@ -58,6 +76,7 @@ class ProductListViewController: UITableViewController {
             self?.activityIndicator.stopAnimating()
             self?.allProducts = products
             self?.tableView.reloadData()
+            self?.updateEmptyState()
         }
     }
 
