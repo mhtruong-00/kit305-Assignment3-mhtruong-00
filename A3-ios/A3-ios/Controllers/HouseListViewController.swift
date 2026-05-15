@@ -85,9 +85,14 @@ class HouseListViewController: UITableViewController {
 
     private func startListening() {
         listener = FirestoreService.shared.listenToHouses { [weak self] houses in
-            self?.houses = houses
-            self?.tableView.reloadData()
-            self?.updateEmptyState()
+            guard let self = self else { return }
+            self.houses = houses
+            UIView.transition(with: self.tableView,
+                              duration: 0.2,
+                              options: .transitionCrossDissolve,
+                              animations: { self.tableView.reloadData() },
+                              completion: nil)
+            self.updateEmptyState()
         }
     }
 
