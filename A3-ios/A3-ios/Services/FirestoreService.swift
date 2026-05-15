@@ -152,9 +152,120 @@ class FirestoreService {
             "variantName": window.variantName,
             "pricePerSqm": window.pricePerSqm
         ]
-        if let photo = window.photoBase64 {
+    // MARK: - Floor Spaces
+
+    func listenToFloorSpaces(houseId: String, roomId: String,
+                              completion: @escaping ([FloorSpace]) -> Void) -> ListenerRegistration {
+        return db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("floors")
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let documents = snapshot?.documents else {
+                    completion([])
+                    return
+                }
+                let items = documents.compactMap { self?.floorFrom(doc: $0, roomId: roomId) }
+                completion(items)
+            }
+    }
+
+    func addFloorSpace(_ floor: FloorSpace, houseId: String, roomId: String,
+                       completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("floors")
+            .addDocument(data: floorData(from: floor), completion: completion)
+    }
+
+    func updateFloorSpace(_ floor: FloorSpace, houseId: String, roomId: String,
+                          completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("floors").document(floor.id)
+            .updateData(floorData(from: floor), completion: completion)
+    }
+
+    func deleteFloorSpace(_ floorId: String, houseId: String, roomId: String,
+                          completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId)
+            .collection("rooms").document(roomId)
+            .collection("floors").document(floorId)
+            .delete(completion: completion)
+    }
+
+    private func floorFrom(doc: DocumentSnapshot, roomId: String) -> FloorSpace? {
+        guard let data = doc.data() else { return nil }
+        return FloorSpace(
+            id: doc.documentID,
+            roomId: roomId,
+            widthCm: data["widthCm"] as? Double ?? 0,
+            lengthCm: data["lengthCm"] as? Double ?? 0,
+            productId: data["productId"] as? String ?? "",
+            variantId: data["variantId"] as? String ?? "",
+            productName: data["productName"] as? String ?? "",
+            variantName: data["variantName"] as? String ?? "",
+            pricePerSqm: data["pricePerSqm"] as? Double ?? 0,
+            photoBase64: data["photoBase64"] as? String
+        )
+    }
+
+    private func floorData(from floor: FloorSpace) -> [String: Any] {
+        var data: [String: Any] = [
+            "widthCm": floor.widthCm,
+            "lengthCm": floor.lengthCm,
+            "productId": floor.productId,
+            "variantId": floor.variantId,
+            "productName": floor.productName,
+            "variantName": floor.variantName,
+            "pricePerSqm": floor.pricePerSqm
+        ]
+        if let photo = floor.photoBase64 {
             data["photoBase64"] = photo
         }
         return data
+    }
+
+    // MARK: - Quote Data Loader
+
+    func loadQuoteData(houseId: String,
+                       completion: @escaping ([Room], [String: [WindowItem]], [String: [FloorSpace]]) -> Void) {
+        db.collection("houses").document(houseId).collection("rooms")
+            .order(by: "createdAt", descending: false)
+            .getDocuments { [weak self] snapshot, error in
+                guard let roomDocs = snapshot?.documents, let self = self else {
+                    completion([], [:], [:])
+                    return
+                }
+                let rooms = roomDocs.compactMap { self.roomFrom(doc: $0, houseId: houseId) }
+                var allWindows: [String: [WindowItem]] = [:]
+                var allFloors: [String: [FloorSpace]] = [:]
+                let group = DispatchGroup()
+
+                for room in rooms {
+                    group.enter()
+                    self.db.collection("houses").document(houseId)
+                        .collection("rooms").document(room.id)
+                        .collection("windows").getDocuments { snap, _ in
+                            allWindows[room.id] = snap?.documents.compactMap {
+                                self.windowFrom(doc: $0, roomId: room.id)
+                            } ?? []
+                            group.leave()
+                        }
+
+                    group.enter()
+                    self.db.collection("houses").document(houseId)
+                        .collection("rooms").document(room.id)
+                        .collection("floors").getDocuments { snap, _ in
+                            allFloors[room.id] = snap?.documents.compactMap {
+                                self.floorFrom(doc: $0, roomId: room.id)
+                            } ?? []
+                            group.leave()
+                        }
+                }
+
+                group.notify(queue: .main) {
+                    completion(rooms, allWindows, allFloors)
+                }
+            }
     }
 }
