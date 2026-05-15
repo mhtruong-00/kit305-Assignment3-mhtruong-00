@@ -21,9 +21,9 @@ class FloorSpaceCell: UITableViewCell {
         return lbl
     }()
 
-    let photoIndicator: UIView = {
+    private let photoIndicator: UIView = {
         let v = UIView()
-        v.backgroundColor = .systemGreen
+        v.backgroundColor = .floorTint
         v.layer.cornerRadius = 5
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
