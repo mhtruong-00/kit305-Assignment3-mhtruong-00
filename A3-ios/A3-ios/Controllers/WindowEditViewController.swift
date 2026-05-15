@@ -18,6 +18,11 @@ class WindowEditViewController: UIViewController {
     private var existingPhotoBase64: String?
     private let photoPicker = PhotoPickerCoordinator()
 
+    // MARK: - Constants
+
+    private let maxDimensionCm: Double = 2000
+    private let minDimensionCm: Double = 1
+
     // MARK: - UI Elements
 
     private let scrollView = UIScrollView()
@@ -257,12 +262,16 @@ class WindowEditViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let widthText = widthField.text, let width = Double(widthText), width > 0 else {
-            showAlert(title: "Validation Error", message: "Width must be a positive number.")
+        guard let widthText = widthField.text, let width = Double(widthText),
+              width >= minDimensionCm, width <= maxDimensionCm else {
+            showAlert(title: "Validation Error",
+                      message: "Width must be between \(Int(minDimensionCm)) and \(Int(maxDimensionCm)) cm.")
             return
         }
-        guard let heightText = heightField.text, let height = Double(heightText), height > 0 else {
-            showAlert(title: "Validation Error", message: "Height must be a positive number.")
+        guard let heightText = heightField.text, let height = Double(heightText),
+              height >= minDimensionCm, height <= maxDimensionCm else {
+            showAlert(title: "Validation Error",
+                      message: "Height must be between \(Int(minDimensionCm)) and \(Int(maxDimensionCm)) cm.")
             return
         }
 
