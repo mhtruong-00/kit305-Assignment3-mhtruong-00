@@ -128,6 +128,7 @@ class QuoteViewController: UIViewController {
 
         applyDiscountButton.addTarget(self, action: #selector(applyDiscount), for: .touchUpInside)
         discountField.addTarget(self, action: #selector(applyDiscount), for: .editingDidEndOnExit)
+        discountField.addDoneInputAccessory(target: self, action: #selector(applyDiscount))
     }
 
     private func loadQuoteData() {
