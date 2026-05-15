@@ -1,36 +1,34 @@
+// With support from GitHub Copilot
+// KIT305 Assignment 3 — iOS Interior Design Quoting App
+// Student: mhtruong-00
+// Unit: KIT305, University of Tasmania
+// Semester 1, 2026
 //
-//  AppDelegate.swift
-//  A3-ios
-//
-//  Created by mobiledev on 15/5/2026.
-//
-
+// AppDelegate: Application entry point.
+// Configures Firebase and Firestore on launch.
 import UIKit
+import FirebaseCore
+import FirebaseFirestore
 
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        FirebaseApp.configure()
+        let settings = FirestoreSettings()
+        settings.isPersistenceEnabled = true
+        Firestore.firestore().settings = settings
         return true
     }
 
     // MARK: UISceneSession Lifecycle
 
     func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-        // Called when a new scene session is being created.
-        // Use this method to select a configuration to create the new scene with.
         return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
     }
 
     func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
-        // Called when the user discards a scene session.
-        // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
-        // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
-
 
 }
 
