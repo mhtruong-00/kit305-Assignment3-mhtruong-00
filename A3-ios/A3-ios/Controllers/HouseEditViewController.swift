@@ -125,11 +125,13 @@ class HouseEditViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let name = nameField.text, !name.trimmingCharacters(in: .whitespaces).isEmpty else {
-            showAlert(title: "Validation Error", message: "House name is required.")
+        guard let name = nameField.text?.trimmingCharacters(in: .whitespaces), !name.isEmpty else {
+            nameField.becomeFirstResponder()
+            showAlert(title: "Name Required", message: "Please enter a house name before saving.")
+            HapticFeedback.error()
             return
         }
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name
         let address = addressField.text?.trimmingCharacters(in: .whitespaces) ?? ""
 
         switch mode {
