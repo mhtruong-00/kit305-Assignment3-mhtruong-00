@@ -45,11 +45,50 @@ class FirestoreService {
         )
     }
 
-    private func houseData(from house: House) -> [String: Any] {
+    // MARK: - Rooms
+
+    func listenToRooms(houseId: String, completion: @escaping ([Room]) -> Void) -> ListenerRegistration {
+        return db.collection("houses").document(houseId).collection("rooms")
+            .order(by: "createdAt", descending: false)
+            .addSnapshotListener { [weak self] snapshot, error in
+                guard let documents = snapshot?.documents else {
+                    completion([])
+                    return
+                }
+                let rooms = documents.compactMap { self?.roomFrom(doc: $0, houseId: houseId) }
+                completion(rooms)
+            }
+    }
+
+    func addRoom(_ room: Room, houseId: String, completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId).collection("rooms")
+            .addDocument(data: roomData(from: room), completion: completion)
+    }
+
+    func updateRoom(_ room: Room, houseId: String, completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId).collection("rooms")
+            .document(room.id).updateData(roomData(from: room), completion: completion)
+    }
+
+    func deleteRoom(_ roomId: String, houseId: String, completion: @escaping (Error?) -> Void) {
+        db.collection("houses").document(houseId).collection("rooms")
+            .document(roomId).delete(completion: completion)
+    }
+
+    private func roomFrom(doc: DocumentSnapshot, houseId: String) -> Room? {
+        guard let data = doc.data() else { return nil }
+        return Room(
+            id: doc.documentID,
+            houseId: houseId,
+            name: data["name"] as? String ?? "",
+            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+        )
+    }
+
+    private func roomData(from room: Room) -> [String: Any] {
         return [
-            "name": house.name,
-            "address": house.address,
-            "createdAt": Timestamp(date: house.createdAt)
+            "name": room.name,
+            "createdAt": Timestamp(date: room.createdAt)
         ]
     }
 }
