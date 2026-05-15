@@ -67,6 +67,7 @@ class HouseListViewController: UITableViewController {
         tableView.register(HouseCell.self, forCellReuseIdentifier: HouseCell.reuseIdentifier)
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 60
+        tableView.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 0)
 
         tableView.backgroundView = emptyLabel
         NSLayoutConstraint.activate([
