@@ -33,6 +33,7 @@ class ProductListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Select Product"
+        navigationItem.backButtonTitle = ""
         setupSearch()
         setupTableView()
         setupActivityIndicator()
@@ -51,6 +52,15 @@ class ProductListViewController: UITableViewController {
         tableView.register(ProductCell.self, forCellReuseIdentifier: ProductCell.reuseIdentifier)
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 60
+
+        let refreshControl = UIRefreshControl()
+        refreshControl.addTarget(self, action: #selector(refreshProducts), for: .valueChanged)
+        tableView.refreshControl = refreshControl
+    }
+
+    @objc private func refreshProducts() {
+        loadProducts()
+        tableView.refreshControl?.endRefreshing()
     }
 
     private func setupActivityIndicator() {
