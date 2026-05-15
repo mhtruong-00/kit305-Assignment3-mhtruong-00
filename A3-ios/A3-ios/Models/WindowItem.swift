@@ -12,6 +12,7 @@ struct WindowItem {
     var variantName: String
     var pricePerSqm: Double
     var photoBase64: String?
+    var panelCount: Int
 
     var areaSqm: Double {
         return (widthCm / 100.0) * (heightCm / 100.0)
@@ -29,7 +30,8 @@ struct WindowItem {
 
     init(id: String = "", roomId: String = "", widthCm: Double = 0, heightCm: Double = 0,
          productId: String = "", variantId: String = "", productName: String = "",
-         variantName: String = "", pricePerSqm: Double = 0, photoBase64: String? = nil) {
+         variantName: String = "", pricePerSqm: Double = 0, photoBase64: String? = nil,
+         panelCount: Int = 1) {
         self.id = id
         self.roomId = roomId
         self.widthCm = widthCm
@@ -40,5 +42,6 @@ struct WindowItem {
         self.variantName = variantName
         self.pricePerSqm = pricePerSqm
         self.photoBase64 = photoBase64
+        self.panelCount = panelCount
     }
 }

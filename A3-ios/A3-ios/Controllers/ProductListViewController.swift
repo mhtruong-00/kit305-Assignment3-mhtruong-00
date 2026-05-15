@@ -5,8 +5,11 @@ class ProductListViewController: UITableViewController {
 
     // Set before pushing to filter by category
     var category: String?  // "window" or "floor"
-    // Callback when a product + variant are selected
-    var onProductSelected: ((_ product: Product, _ variant: ProductVariant?) -> Void)?
+    // Space dimensions in mm (set by caller for window products)
+    var spaceWidthMm: Int = 0
+    var spaceHeightMm: Int = 0
+    // Callback when a product + variant are selected (includes panelCount)
+    var onProductSelected: ((_ product: Product, _ variant: ProductVariant?, _ panelCount: Int) -> Void)?
 
     private var allProducts: [Product] = []
     private var filteredProducts: [Product] = []
@@ -106,24 +109,59 @@ class ProductListViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: ProductCell.reuseIdentifier, for: indexPath) as! ProductCell
-        cell.configure(with: displayedProducts[indexPath.row])
+        let product = displayedProducts[indexPath.row]
+        if product.category == "window" {
+            let compat = CompatibilityChecker.check(product: product, widthMm: spaceWidthMm, heightMm: spaceHeightMm)
+            cell.configure(with: product, compatibility: compat)
+        } else {
+            cell.configure(with: product)
+        }
         return cell
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         let product = displayedProducts[indexPath.row]
-        if product.variants.isEmpty {
-            onProductSelected?(product, nil)
-            navigationController?.popToRootViewControllerThenPop()
-        } else {
-            let vc = ProductVariantViewController()
-            vc.product = product
-            vc.onVariantSelected = { [weak self] variant in
-                self?.onProductSelected?(product, variant)
-                self?.navigationController?.popToRootViewControllerThenPop()
+
+        // Check compatibility for window products
+        if product.category == "window" {
+            let compat = CompatibilityChecker.check(product: product, widthMm: spaceWidthMm, heightMm: spaceHeightMm)
+            if !compat.compatible {
+                let alert = UIAlertController(
+                    title: "Cannot Select",
+                    message: compat.message,
+                    preferredStyle: .alert
+                )
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                present(alert, animated: true)
+                return
             }
-            navigationController?.pushViewController(vc, animated: true)
+            let panelCount = compat.panelCount
+            if product.variants.isEmpty {
+                onProductSelected?(product, nil, panelCount)
+                navigationController?.popToRootViewControllerThenPop()
+            } else {
+                let vc = ProductVariantViewController()
+                vc.product = product
+                vc.onVariantSelected = { [weak self] variant in
+                    self?.onProductSelected?(product, variant, panelCount)
+                    self?.navigationController?.popToRootViewControllerThenPop()
+                }
+                navigationController?.pushViewController(vc, animated: true)
+            }
+        } else {
+            if product.variants.isEmpty {
+                onProductSelected?(product, nil, 1)
+                navigationController?.popToRootViewControllerThenPop()
+            } else {
+                let vc = ProductVariantViewController()
+                vc.product = product
+                vc.onVariantSelected = { [weak self] variant in
+                    self?.onProductSelected?(product, variant, 1)
+                    self?.navigationController?.popToRootViewControllerThenPop()
+                }
+                navigationController?.pushViewController(vc, animated: true)
+            }
         }
     }
 }

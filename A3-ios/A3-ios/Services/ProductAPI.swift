@@ -101,6 +101,13 @@ class ProductAPI {
             }
         }
 
+        let minWidth = intCoerce(dict["min_width"] ?? dict["minWidth"]) ?? 0
+        let maxWidth = intCoerce(dict["max_width"] ?? dict["maxWidth"]) ?? 9999
+        let minHeight = intCoerce(dict["min_height"] ?? dict["minHeight"]) ?? 0
+        let maxHeight = intCoerce(dict["max_height"] ?? dict["maxHeight"]) ?? 9999
+        // max_panels is the API key; maxPanels and maxPanelCount are accepted for forward-compatibility
+        let maxPanelCount = intCoerce(dict["max_panels"] ?? dict["maxPanels"] ?? dict["maxPanelCount"]) ?? 1
+
         return Product(
             id: id,
             name: name,
@@ -108,7 +115,22 @@ class ProductAPI {
             category: category,
             imageUrl: imageUrl,
             pricePerSqm: pricePerSqm,
-            variants: variants
+            variants: variants,
+            minWidth: minWidth,
+            maxWidth: maxWidth,
+            minHeight: minHeight,
+            maxHeight: maxHeight,
+            maxPanelCount: maxPanelCount
         )
+    }
+
+    /// Tolerantly coerce Any? (String / Int / Double) to Int
+    private static func intCoerce(_ value: Any?) -> Int? {
+        guard let value = value else { return nil }
+        if let i = value as? Int { return i }
+        if let d = value as? Double { return Int(d) }
+        if let n = value as? NSNumber { return n.intValue }
+        if let s = value as? String, let i = Int(s) { return i }
+        return nil
     }
 }

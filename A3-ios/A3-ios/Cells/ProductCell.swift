@@ -36,6 +36,14 @@ class ProductCell: UITableViewCell {
         return lbl
     }()
 
+    private static let incompatibleAlpha: CGFloat = 0.45
+        let lbl = UILabel()
+        lbl.font = UIFont.systemFont(ofSize: 12, weight: .medium)
+        lbl.numberOfLines = 0
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
     override init(style: UITableViewCell.CellStyle, reuseIdentifier: String?) {
         super.init(style: style, reuseIdentifier: reuseIdentifier)
         setupViews()
@@ -51,6 +59,7 @@ class ProductCell: UITableViewCell {
         contentView.addSubview(priceLabel)
         contentView.addSubview(categoryLabel)
         contentView.addSubview(descriptionLabel)
+        contentView.addSubview(compatibilityLabel)
         NSLayoutConstraint.activate([
             nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
             nameLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
@@ -61,14 +70,21 @@ class ProductCell: UITableViewCell {
             priceLabel.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 3),
             priceLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
             priceLabel.trailingAnchor.constraint(equalTo: categoryLabel.leadingAnchor, constant: -8),
-            priceLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
             categoryLabel.centerYAnchor.constraint(equalTo: priceLabel.centerYAnchor),
-            categoryLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16)
+            categoryLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            compatibilityLabel.topAnchor.constraint(equalTo: priceLabel.bottomAnchor, constant: 3),
+            compatibilityLabel.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            compatibilityLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            compatibilityLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10)
         ])
         accessoryType = .disclosureIndicator
     }
 
     func configure(with product: Product) {
+        configure(with: product, compatibility: nil)
+    }
+
+    func configure(with product: Product, compatibility: CompatibilityResult?) {
         nameLabel.text = product.name
         descriptionLabel.text = product.description.isEmpty ? nil : product.description
         descriptionLabel.isHidden = product.description.isEmpty
@@ -78,6 +94,24 @@ class ProductCell: UITableViewCell {
             categoryLabel.text = "\(product.category.capitalized) • \(varCount) variants"
         } else {
             categoryLabel.text = product.category.capitalized
+        }
+
+        if let compat = compatibility {
+            if compat.compatible {
+                compatibilityLabel.text = "✓ \(compat.message)"
+                compatibilityLabel.textColor = .systemGreen
+                contentView.alpha = 1.0
+                accessoryType = .disclosureIndicator
+            } else {
+                compatibilityLabel.text = "✗ \(compat.message)"
+                compatibilityLabel.textColor = .systemRed
+                contentView.alpha = ProductCell.incompatibleAlpha
+                accessoryType = .none
+            }
+        } else {
+            compatibilityLabel.text = ""
+            contentView.alpha = 1.0
+            accessoryType = .disclosureIndicator
         }
     }
 }
