@@ -116,6 +116,7 @@ class FloorSpaceEditViewController: UIViewController {
         case .add: title = "Add Floor Space"
         case .edit: title = "Edit Floor Space"
         }
+        navigationItem.backButtonTitle = ""
 
         setupScrollLayout()
         populateIfEditing()
