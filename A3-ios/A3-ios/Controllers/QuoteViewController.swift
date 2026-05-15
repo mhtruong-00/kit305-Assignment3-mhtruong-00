@@ -44,7 +44,7 @@ class QuoteViewController: UIViewController {
 
     private let totalLabel: UILabel = {
         let lbl = UILabel()
-        lbl.font = UIFont.systemFont(ofSize: 18, weight: .bold)
+        lbl.font = UIFont.monospacedSystemFont(ofSize: 18, weight: .bold)
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
