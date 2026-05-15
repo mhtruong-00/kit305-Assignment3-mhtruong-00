@@ -51,7 +51,7 @@ class QuoteViewController: UIViewController {
 
     private let applyDiscountButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("Apply", for: .normal)
+        btn.setTitle("Apply %", for: .normal)
         btn.translatesAutoresizingMaskIntoConstraints = false
         return btn
     }()
