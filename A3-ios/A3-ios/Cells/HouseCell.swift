@@ -46,6 +46,6 @@ class HouseCell: UITableViewCell {
 
     func configure(with house: House) {
         nameLabel.text = house.name
-        addressLabel.text = house.address.isEmpty ? "No address" : house.address
+        addressLabel.text = house.address.isEmpty ? "No address on file" : house.address
     }
 }
