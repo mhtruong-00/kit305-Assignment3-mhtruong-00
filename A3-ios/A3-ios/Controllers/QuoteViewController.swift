@@ -177,27 +177,34 @@ class QuoteViewController: UIViewController {
         view.endEditing(true)
     }
 
-    @objc private func shareTapped() {
-        applyDiscount()
-        let csv = CSVExporter.shared.generateCSV(
+    private func generateCSV(from items: [QuoteLineItem]) -> String {
+        let date = DateFormatter.timestampFormatter.string(from: Date())
+        return CSVExporter.shared.generateCSV(
             houseName: house.name,
             address: house.address,
-            items: lineItems,
+            items: items,
             discountPercent: discountPercent
         )
+    }
+
+    @objc private func shareTapped() {
+        applyDiscount()
+        let csv = generateCSV(from: lineItems)
+        let date = DateFormatter.timestampFormatter.string(from: Date())
+        let safeName = house.name.replacingOccurrences(of: " ", with: "_")
         let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("quote_\(house.name.replacingOccurrences(of: " ", with: "_")).csv")
+            .appendingPathComponent("quote_\(safeName)_\(date).csv")
         do {
             try csv.write(to: tempURL, atomically: true, encoding: .utf8)
             let vc = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
             if let popover = vc.popoverPresentationController {
-                popover.barButtonItem = navigationItem.rightBarButtonItem
+                popover.barButtonItem = navigationItem.rightBarButtonItems?.first
             }
             present(vc, animated: true)
         } catch {
             let vc = UIActivityViewController(activityItems: [csv], applicationActivities: nil)
             if let popover = vc.popoverPresentationController {
-                popover.barButtonItem = navigationItem.rightBarButtonItem
+                popover.barButtonItem = navigationItem.rightBarButtonItems?.first
             }
             present(vc, animated: true)
         }
