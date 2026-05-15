@@ -155,7 +155,8 @@ class FirestoreService {
             productName: data["productName"] as? String ?? "",
             variantName: data["variantName"] as? String ?? "",
             pricePerSqm: data["pricePerSqm"] as? Double ?? 0,
-            photoBase64: data["photoBase64"] as? String
+            photoBase64: data["photoBase64"] as? String,
+            panelCount: data["panelCount"] as? Int ?? 1
         )
     }
 
@@ -167,7 +168,8 @@ class FirestoreService {
             "variantId": window.variantId,
             "productName": window.productName,
             "variantName": window.variantName,
-            "pricePerSqm": window.pricePerSqm
+            "pricePerSqm": window.pricePerSqm,
+            "panelCount": window.panelCount
         ]
         if let photo = window.photoBase64 {
             data["photoBase64"] = photo

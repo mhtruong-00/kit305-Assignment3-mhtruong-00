@@ -236,7 +236,7 @@ class FloorSpaceEditViewController: UIViewController {
     @objc private func selectProductTapped() {
         let vc = ProductListViewController()
         vc.category = "floor"
-        vc.onProductSelected = { [weak self] product, variant in
+        vc.onProductSelected = { [weak self] product, variant, _ in
             guard let self = self else { return }
             self.selectedProduct = product
             self.selectedVariant = variant
