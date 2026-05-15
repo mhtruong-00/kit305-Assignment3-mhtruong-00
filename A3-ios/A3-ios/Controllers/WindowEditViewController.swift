@@ -116,6 +116,7 @@ class WindowEditViewController: UIViewController {
         case .add: title = "Add Window"
         case .edit: title = "Edit Window"
         }
+        navigationItem.backButtonTitle = ""
 
         setupScrollLayout()
         populateIfEditing()
