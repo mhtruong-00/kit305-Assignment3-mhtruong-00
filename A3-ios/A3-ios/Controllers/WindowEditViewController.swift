@@ -14,6 +14,7 @@ class WindowEditViewController: UIViewController {
 
     private var selectedProduct: Product?
     private var selectedVariant: ProductVariant?
+    private var selectedPanelCount: Int = 1
     private var selectedImage: UIImage?
     private var existingPhotoBase64: String?
     private let photoPicker = PhotoPickerCoordinator()
@@ -206,6 +207,7 @@ class WindowEditViewController: UIViewController {
             selectedProduct = Product(id: window.productId, name: window.productName,
                                       pricePerSqm: window.pricePerSqm)
             selectedVariant = ProductVariant(id: window.variantId, name: window.variantName)
+            selectedPanelCount = window.panelCount
             updatePriceLabel()
         }
     }
@@ -236,10 +238,15 @@ class WindowEditViewController: UIViewController {
     @objc private func selectProductTapped() {
         let vc = ProductListViewController()
         vc.category = "window"
-        vc.onProductSelected = { [weak self] product, variant in
+        let widthCm = Double(widthField.text ?? "") ?? 0
+        let heightCm = Double(heightField.text ?? "") ?? 0
+        vc.spaceWidthMm = Int((widthCm * 10).rounded())
+        vc.spaceHeightMm = Int((heightCm * 10).rounded())
+        vc.onProductSelected = { [weak self] product, variant, panelCount in
             guard let self = self else { return }
             self.selectedProduct = product
             self.selectedVariant = variant
+            self.selectedPanelCount = panelCount
             if let variant = variant {
                 self.productLabel.text = "\(product.name) — \(variant.name)"
             } else {
@@ -292,7 +299,8 @@ class WindowEditViewController: UIViewController {
             let window = WindowItem(roomId: room.id, widthCm: width, heightCm: height,
                                     productId: productId, variantId: variantId,
                                     productName: productName, variantName: variantName,
-                                    pricePerSqm: pricePerSqm, photoBase64: photoBase64)
+                                    pricePerSqm: pricePerSqm, photoBase64: photoBase64,
+                                    panelCount: selectedPanelCount)
             FirestoreService.shared.addWindow(window, houseId: house.id, roomId: room.id) { [weak self] error in
                 if let error = error {
                     HapticFeedback.error()
@@ -311,6 +319,7 @@ class WindowEditViewController: UIViewController {
             window.variantName = variantName
             window.pricePerSqm = pricePerSqm
             window.photoBase64 = photoBase64
+            window.panelCount = selectedPanelCount
             FirestoreService.shared.updateWindow(window, houseId: house.id, roomId: room.id) { [weak self] error in
                 if let error = error {
                     self?.showAlert(title: "Error", message: error.localizedDescription)
