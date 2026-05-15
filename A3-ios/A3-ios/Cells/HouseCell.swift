@@ -46,6 +46,11 @@ class HouseCell: UITableViewCell {
 
     func configure(with house: House) {
         nameLabel.text = house.name
-        addressLabel.text = house.address.isEmpty ? "No address on file" : house.address
+        let dateStr = DateFormatter.displayFormatter.string(from: house.createdAt)
+        if house.address.isEmpty {
+            addressLabel.text = "Created \(dateStr)"
+        } else {
+            addressLabel.text = house.address
+        }
     }
 }
