@@ -114,7 +114,11 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
     }
 
     func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return section == 0 ? "Windows" : "Floor Spaces"
+        if section == 0 {
+            return windows.isEmpty ? "Windows (none)" : "Windows (\(windows.count))"
+        } else {
+            return floors.isEmpty ? "Floor Spaces (none)" : "Floor Spaces (\(floors.count))"
+        }
     }
 
     func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
