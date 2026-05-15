@@ -34,5 +34,6 @@ class RoomCell: UITableViewCell {
 
     func configure(with room: Room) {
         nameLabel.text = room.name
+        // Subtitle could show creation date
     }
 }
