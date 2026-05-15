@@ -24,6 +24,7 @@ class RoomDetailViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = room.name
+        navigationItem.backButtonTitle = ""
         setupNavigationBar()
         setupTableView()
         startListening()
