@@ -9,12 +9,15 @@ class ProductAPI {
     private init() {}
 
     func fetchProducts(category: String? = nil, completion: @escaping ([Product]) -> Void) {
-        var urlString = baseURL
-        if let cat = category {
-            urlString += "?category=\(cat)"
+        guard var components = URLComponents(string: baseURL) else {
+            DispatchQueue.main.async { completion([]) }
+            return
         }
-        guard let url = URL(string: urlString) else {
-            completion([])
+        if let cat = category, !cat.isEmpty {
+            components.queryItems = [URLQueryItem(name: "category", value: cat)]
+        }
+        guard let url = components.url else {
+            DispatchQueue.main.async { completion([]) }
             return
         }
 
