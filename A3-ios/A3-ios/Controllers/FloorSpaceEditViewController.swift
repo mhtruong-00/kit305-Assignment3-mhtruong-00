@@ -202,19 +202,23 @@ class FloorSpaceEditViewController: UIViewController {
 
     private func populateIfEditing() {
         guard case .edit(let floor) = mode else { return }
-        widthField.text = String(format: "%.0f", floor.widthCm)
-        lengthField.text = String(format: "%.0f", floor.lengthCm)
+        nameField.text = floor.name
+        widthField.text = floor.widthMm > 0 ? "\(floor.widthMm)" : ""
+        lengthField.text = floor.depthMm > 0 ? "\(floor.depthMm)" : ""
         existingPhotoBase64 = floor.photoBase64
         if let p64 = floor.photoBase64, let image = ImageStore.shared.decodeImage(p64) {
             photoImageView.image = image
             removePhotoButton.isHidden = false
         }
-        if !floor.productId.isEmpty {
-            productLabel.text = "\(floor.productName) — \(floor.variantName)"
+        if !floor.selectedProductId.isEmpty {
+            productLabel.text = floor.selectedProductVariant.isEmpty
+                ? floor.selectedProductName
+                : "\(floor.selectedProductName) — \(floor.selectedProductVariant)"
             productLabel.textColor = .label
-            selectedProduct = Product(id: floor.productId, name: floor.productName,
-                                      pricePerSqm: floor.pricePerSqm)
-            selectedVariant = ProductVariant(id: floor.variantId, name: floor.variantName)
+            selectedProduct = Product(id: floor.selectedProductId,
+                                      name: floor.selectedProductName,
+                                      pricePerSqm: 0)
+            selectedVariant = ProductVariant(id: "", name: floor.selectedProductVariant)
             updatePriceLabel()
         }
     }
@@ -232,19 +236,22 @@ class FloorSpaceEditViewController: UIViewController {
     @objc private func dimensionsChanged() { updatePriceLabel() }
 
     private func updatePriceLabel() {
-        guard let w = Double(widthField.text ?? ""), let l = Double(lengthField.text ?? ""),
+        guard let w = Int(widthField.text ?? ""), let l = Int(lengthField.text ?? ""),
               let product = selectedProduct, w > 0, l > 0 else {
             priceLabel.text = "Item price: —"
             return
         }
-        let area = (w / 100.0) * (l / 100.0)
-        let price = product.pricePerSqm * area
+        let area = (Double(w) / 1000.0) * (Double(l) / 1000.0)
+        let rate = product.pricePerSqm > 0 ? product.pricePerSqm : QuoteCalculator.defaultFloorRate
+        let price = rate * area
         priceLabel.text = String(format: "Item price: $%.2f (%.4f sqm)", price, area)
     }
 
     @objc private func selectProductTapped() {
         let vc = ProductListViewController()
         vc.category = "floor"
+        vc.spaceWidthMm = Int(widthField.text ?? "") ?? 0
+        vc.spaceHeightMm = Int(lengthField.text ?? "") ?? 0
         vc.onProductSelected = { [weak self] product, variant, _ in
             guard let self = self else { return }
             self.selectedProduct = product
@@ -272,18 +279,20 @@ class FloorSpaceEditViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let widthText = widthField.text, let width = Double(widthText),
-              width >= minDimensionCm, width <= maxDimensionCm else {
+        guard let widthText = widthField.text, let width = Int(widthText),
+              width >= minDimensionMm, width <= maxDimensionMm else {
             showAlert(title: "Validation Error",
-                      message: "Width must be between \(Int(minDimensionCm)) and \(Int(maxDimensionCm)) cm.")
+                      message: "Width must be between \(minDimensionMm) and \(maxDimensionMm) mm.")
             return
         }
-        guard let lengthText = lengthField.text, let length = Double(lengthText),
-              length >= minDimensionCm, length <= maxDimensionCm else {
+        guard let lengthText = lengthField.text, let length = Int(lengthText),
+              length >= minDimensionMm, length <= maxDimensionMm else {
             showAlert(title: "Validation Error",
-                      message: "Length must be between \(Int(minDimensionCm)) and \(Int(maxDimensionCm)) cm.")
+                      message: "Depth must be between \(minDimensionMm) and \(maxDimensionMm) mm.")
             return
         }
+
+        let name = nameField.text?.trimmingCharacters(in: .whitespaces).nonEmpty ?? "Unnamed"
 
         var photoBase64: String? = existingPhotoBase64
         if let img = selectedImage {
@@ -292,17 +301,17 @@ class FloorSpaceEditViewController: UIViewController {
 
         let productId = selectedProduct?.id ?? ""
         let productName = selectedProduct?.name ?? ""
-        let pricePerSqm = selectedProduct?.pricePerSqm ?? 0
-        let variantId = selectedVariant?.id ?? ""
         let variantName = selectedVariant?.name ?? ""
 
         switch mode {
         case .add:
-            let floor = FloorSpace(roomId: room.id, widthCm: width, lengthCm: length,
-                                   productId: productId, variantId: variantId,
-                                   productName: productName, variantName: variantName,
-                                   pricePerSqm: pricePerSqm, photoBase64: photoBase64)
-            FirestoreService.shared.addFloorSpace(floor, houseId: house.id, roomId: room.id) { [weak self] error in
+            let floor = FloorSpace(roomId: room.id, name: name,
+                                   widthMm: width, depthMm: length,
+                                   selectedProductId: productId,
+                                   selectedProductName: productName,
+                                   selectedProductVariant: variantName,
+                                   photoBase64: photoBase64)
+            FirestoreService.shared.addFloorSpace(floor) { [weak self] error in
                 if let error = error {
                     HapticFeedback.error()
                     self?.showAlert(title: "Error", message: error.localizedDescription)
@@ -312,15 +321,14 @@ class FloorSpaceEditViewController: UIViewController {
                 }
             }
         case .edit(var floor):
-            floor.widthCm = width
-            floor.lengthCm = length
-            floor.productId = productId
-            floor.variantId = variantId
-            floor.productName = productName
-            floor.variantName = variantName
-            floor.pricePerSqm = pricePerSqm
+            floor.name = name
+            floor.widthMm = width
+            floor.depthMm = length
+            floor.selectedProductId = productId
+            floor.selectedProductName = productName
+            floor.selectedProductVariant = variantName
             floor.photoBase64 = photoBase64
-            FirestoreService.shared.updateFloorSpace(floor, houseId: house.id, roomId: room.id) { [weak self] error in
+            FirestoreService.shared.updateFloorSpace(floor) { [weak self] error in
                 if let error = error {
                     self?.showAlert(title: "Error", message: error.localizedDescription)
                 } else {
