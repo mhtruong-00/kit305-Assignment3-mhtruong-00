@@ -1,4 +1,8 @@
 // With support from GitHub Copilot
+// Quote-line model aligned with the Android quote screen.
+// Pricing now comes from a product-rate map (from API) with sensible defaults,
+// not a per-item pricePerSqm value, and rooms add a labour charge ($200) when
+// they have at least one measured + included item.
 import Foundation
 
 enum QuoteItemType {
@@ -7,18 +11,22 @@ enum QuoteItemType {
 }
 
 struct QuoteLineItem {
-    var id: String
+    var id: String           // stable item id (Firestore doc id or composite)
+    var roomId: String
     var roomName: String
     var itemType: QuoteItemType
+    var itemName: String
+    var productId: String
     var productName: String
     var variantName: String
-    var widthCm: Double
-    var heightOrLengthCm: Double
+    var widthMm: Int
+    var heightOrDepthMm: Int
+    var panelCount: Int
     var pricePerSqm: Double
     var isIncluded: Bool
 
     var areaSqm: Double {
-        return (widthCm / 100.0) * (heightOrLengthCm / 100.0)
+        return (Double(widthMm) / 1000.0) * (Double(heightOrDepthMm) / 1000.0)
     }
 
     var itemPrice: Double {
@@ -30,25 +38,30 @@ struct QuoteLineItem {
     }
 
     var dimensionLabel: String {
-        let secondLabel = itemType == .window ? "H" : "L"
-        return "\(Int(widthCm))W × \(Int(heightOrLengthCm))\(secondLabel) cm"
+        let suffix = itemType == .window ? "H" : "D"
+        return "\(widthMm)W × \(heightOrDepthMm)\(suffix) mm"
     }
 
     var priceLabel: String {
         return String(format: "$%.2f", itemPrice)
     }
 
-    init(id: String = "", roomName: String = "", itemType: QuoteItemType = .window,
-         productName: String = "", variantName: String = "",
-         widthCm: Double = 0, heightOrLengthCm: Double = 0,
-         pricePerSqm: Double = 0, isIncluded: Bool = true) {
+    init(id: String = "", roomId: String = "", roomName: String = "",
+         itemType: QuoteItemType = .window, itemName: String = "",
+         productId: String = "", productName: String = "", variantName: String = "",
+         widthMm: Int = 0, heightOrDepthMm: Int = 0,
+         panelCount: Int = 1, pricePerSqm: Double = 0, isIncluded: Bool = true) {
         self.id = id
+        self.roomId = roomId
         self.roomName = roomName
         self.itemType = itemType
+        self.itemName = itemName
+        self.productId = productId
         self.productName = productName
         self.variantName = variantName
-        self.widthCm = widthCm
-        self.heightOrLengthCm = heightOrLengthCm
+        self.widthMm = widthMm
+        self.heightOrDepthMm = heightOrDepthMm
+        self.panelCount = panelCount
         self.pricePerSqm = pricePerSqm
         self.isIncluded = isIncluded
     }
