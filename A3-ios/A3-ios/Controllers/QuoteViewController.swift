@@ -18,73 +18,83 @@ class QuoteViewController: UIViewController {
 
     private let tableView = UITableView(frame: .zero, style: .grouped)
 
-    private let summaryView: UIView = {
+    // MARK: - Summary card (footer)
+
+    private let summaryCard: UIView = {
         let v = UIView()
-        v.backgroundColor = .systemGroupedBackground
+        v.backgroundColor = .secondarySystemGroupedBackground
+        v.layer.cornerRadius = 14
+        v.layer.shadowColor = UIColor.black.cgColor
+        v.layer.shadowOpacity = 0.08
+        v.layer.shadowOffset = CGSize(width: 0, height: -2)
+        v.layer.shadowRadius = 6
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
     }()
 
     private let statusLabel: UILabel = {
         let lbl = UILabel()
-        lbl.font = UIFont.systemFont(ofSize: 12)
+        lbl.font = UIFont.systemFont(ofSize: 11, weight: .medium)
         lbl.textColor = .secondaryLabel
         lbl.numberOfLines = 0
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
 
-    private let subtotalLabel: UILabel = {
+    private let subtotalCaption = QuoteViewController.makeCaption("Subtotal")
+    private let subtotalValue   = QuoteViewController.makeValue()
+    private let discountValue   = QuoteViewController.makeValue()
+    private let totalCaption: UILabel = {
         let lbl = UILabel()
-        lbl.font = UIFont.systemFont(ofSize: 15)
+        lbl.text = "FINAL TOTAL"
+        lbl.font = UIFont.systemFont(ofSize: 12, weight: .heavy)
+        lbl.textColor = .quoteTint
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
+    }()
+    private let totalValue: UILabel = {
+        let lbl = UILabel()
+        lbl.font = UIFont.monospacedDigitSystemFont(ofSize: 24, weight: .bold)
+        lbl.textColor = .quoteTint
+        lbl.textAlignment = .right
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
+    private let totalDivider: UIView = {
+        let v = UIView()
+        v.backgroundColor = .separator
+        v.translatesAutoresizingMaskIntoConstraints = false
+        return v
     }()
 
     private let discountField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "%"
+        tf.placeholder = "0"
         tf.borderStyle = .roundedRect
         tf.keyboardType = .decimalPad
         tf.textAlignment = .center
+        tf.font = UIFont.monospacedDigitSystemFont(ofSize: 14, weight: .regular)
         tf.translatesAutoresizingMaskIntoConstraints = false
         return tf
     }()
 
-    private let discountLabel: UILabel = {
+    private let percentLabel: UILabel = {
         let lbl = UILabel()
-        lbl.text = "Discount (%):"
-        lbl.font = UIFont.systemFont(ofSize: 14)
-        lbl.translatesAutoresizingMaskIntoConstraints = false
-        return lbl
-    }()
-
-    private let applyDiscountButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("Apply", for: .normal)
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
-    }()
-
-    private let clearDiscountButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("Clear", for: .normal)
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
-    }()
-
-    private let totalLabel: UILabel = {
-        let lbl = UILabel()
-        lbl.font = UIFont.monospacedSystemFont(ofSize: 18, weight: .bold)
+        lbl.text = "%"
+        lbl.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        lbl.textColor = .secondaryLabel
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
 
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
 
+    // MARK: - Lifecycle
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
         title = "Quote — \(house.name)"
         navigationItem.backButtonTitle = ""
         navigationItem.rightBarButtonItem = UIBarButtonItem(
@@ -105,62 +115,98 @@ class QuoteViewController: UIViewController {
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.dataSource = self
         tableView.delegate = self
+        tableView.backgroundColor = .systemGroupedBackground
         tableView.register(QuoteLineCell.self, forCellReuseIdentifier: QuoteLineCell.reuseIdentifier)
         tableView.rowHeight = UITableView.automaticDimension
-        tableView.estimatedRowHeight = 70
+        tableView.estimatedRowHeight = 74
 
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
 
-        let discountRow = UIStackView(arrangedSubviews: [discountLabel, discountField, applyDiscountButton, clearDiscountButton])
-        discountRow.axis = .horizontal
-        discountRow.spacing = 8
-        discountRow.translatesAutoresizingMaskIntoConstraints = false
-        discountField.widthAnchor.constraint(equalToConstant: 70).isActive = true
+        let discountLabel = UILabel()
+        discountLabel.text = "Discount"
+        discountLabel.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        discountLabel.textColor = .secondaryLabel
+        discountLabel.translatesAutoresizingMaskIntoConstraints = false
 
         view.addSubview(tableView)
-        view.addSubview(summaryView)
+        view.addSubview(summaryCard)
         view.addSubview(activityIndicator)
 
-        summaryView.addSubview(statusLabel)
-        summaryView.addSubview(subtotalLabel)
-        summaryView.addSubview(discountRow)
-        summaryView.addSubview(totalLabel)
+        summaryCard.addSubview(statusLabel)
+        summaryCard.addSubview(subtotalCaption)
+        summaryCard.addSubview(subtotalValue)
+        summaryCard.addSubview(discountLabel)
+        summaryCard.addSubview(discountField)
+        summaryCard.addSubview(percentLabel)
+        summaryCard.addSubview(discountValue)
+        summaryCard.addSubview(totalDivider)
+        summaryCard.addSubview(totalCaption)
+        summaryCard.addSubview(totalValue)
 
         NSLayoutConstraint.activate([
-            summaryView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            summaryView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            summaryView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
+            summaryCard.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 12),
+            summaryCard.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -12),
+            summaryCard.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
 
-            statusLabel.topAnchor.constraint(equalTo: summaryView.topAnchor, constant: 10),
-            statusLabel.leadingAnchor.constraint(equalTo: summaryView.leadingAnchor, constant: 16),
-            statusLabel.trailingAnchor.constraint(equalTo: summaryView.trailingAnchor, constant: -16),
+            statusLabel.topAnchor.constraint(equalTo: summaryCard.topAnchor, constant: 10),
+            statusLabel.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 14),
+            statusLabel.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -14),
 
-            subtotalLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 4),
-            subtotalLabel.leadingAnchor.constraint(equalTo: summaryView.leadingAnchor, constant: 16),
-            subtotalLabel.trailingAnchor.constraint(equalTo: summaryView.trailingAnchor, constant: -16),
+            subtotalCaption.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 8),
+            subtotalCaption.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 14),
+            subtotalValue.centerYAnchor.constraint(equalTo: subtotalCaption.centerYAnchor),
+            subtotalValue.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -14),
 
-            discountRow.topAnchor.constraint(equalTo: subtotalLabel.bottomAnchor, constant: 8),
-            discountRow.leadingAnchor.constraint(equalTo: summaryView.leadingAnchor, constant: 16),
-            discountRow.trailingAnchor.constraint(equalTo: summaryView.trailingAnchor, constant: -16),
+            discountLabel.topAnchor.constraint(equalTo: subtotalCaption.bottomAnchor, constant: 10),
+            discountLabel.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 14),
+            discountField.centerYAnchor.constraint(equalTo: discountLabel.centerYAnchor),
+            discountField.leadingAnchor.constraint(equalTo: discountLabel.trailingAnchor, constant: 8),
+            discountField.widthAnchor.constraint(equalToConstant: 60),
+            discountField.heightAnchor.constraint(equalToConstant: 32),
+            percentLabel.centerYAnchor.constraint(equalTo: discountField.centerYAnchor),
+            percentLabel.leadingAnchor.constraint(equalTo: discountField.trailingAnchor, constant: 4),
+            discountValue.centerYAnchor.constraint(equalTo: discountLabel.centerYAnchor),
+            discountValue.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -14),
 
-            totalLabel.topAnchor.constraint(equalTo: discountRow.bottomAnchor, constant: 8),
-            totalLabel.leadingAnchor.constraint(equalTo: summaryView.leadingAnchor, constant: 16),
-            totalLabel.trailingAnchor.constraint(equalTo: summaryView.trailingAnchor, constant: -16),
-            totalLabel.bottomAnchor.constraint(equalTo: summaryView.bottomAnchor, constant: -12),
+            totalDivider.topAnchor.constraint(equalTo: discountField.bottomAnchor, constant: 10),
+            totalDivider.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 14),
+            totalDivider.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -14),
+            totalDivider.heightAnchor.constraint(equalToConstant: 1),
+
+            totalCaption.topAnchor.constraint(equalTo: totalDivider.bottomAnchor, constant: 10),
+            totalCaption.leadingAnchor.constraint(equalTo: summaryCard.leadingAnchor, constant: 14),
+            totalValue.centerYAnchor.constraint(equalTo: totalCaption.centerYAnchor),
+            totalValue.trailingAnchor.constraint(equalTo: summaryCard.trailingAnchor, constant: -14),
+            totalValue.bottomAnchor.constraint(equalTo: summaryCard.bottomAnchor, constant: -14),
 
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            tableView.bottomAnchor.constraint(equalTo: summaryView.topAnchor),
+            tableView.bottomAnchor.constraint(equalTo: summaryCard.topAnchor, constant: -8),
 
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: tableView.centerYAnchor)
         ])
 
-        applyDiscountButton.addTarget(self, action: #selector(applyDiscount), for: .touchUpInside)
-        clearDiscountButton.addTarget(self, action: #selector(clearDiscount), for: .touchUpInside)
+        discountField.addTarget(self, action: #selector(applyDiscount), for: .editingChanged)
         discountField.addTarget(self, action: #selector(applyDiscount), for: .editingDidEndOnExit)
         discountField.addDoneInputAccessory(target: self, action: #selector(applyDiscount))
+    }
+
+    private static func makeCaption(_ text: String) -> UILabel {
+        let lbl = UILabel()
+        lbl.text = text
+        lbl.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        lbl.textColor = .secondaryLabel
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }
+    private static func makeValue() -> UILabel {
+        let lbl = UILabel()
+        lbl.font = UIFont.monospacedDigitSystemFont(ofSize: 15, weight: .semibold)
+        lbl.textAlignment = .right
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
     }
 
     // MARK: - Loading
@@ -170,7 +216,6 @@ class QuoteViewController: UIViewController {
         statusLabel.text = "Loading quote…"
         FirestoreService.shared.loadQuoteData(houseId: house.id) { [weak self] rooms, windows, floors in
             guard let self = self else { return }
-            // Now fetch all products so we can resolve rates.
             ProductAPI.shared.fetchProducts(category: nil) { products in
                 self.activityIndicator.stopAnimating()
                 let rates = Dictionary(uniqueKeysWithValues:
@@ -193,22 +238,27 @@ class QuoteViewController: UIViewController {
         let subtotal = QuoteCalculator.shared.houseSubtotal(from: roomQuotes)
         let discount = QuoteCalculator.shared.discountAmount(from: roomQuotes, discountPercent: discountPercent)
         let total    = QuoteCalculator.shared.finalTotal(from: roomQuotes, discountPercent: discountPercent)
-        let includedItems = roomQuotes.flatMap { rq in
-            rq.isIncluded ? rq.items.filter { $0.isIncluded } : []
-        }.count
-        subtotalLabel.text = String(format: "Subtotal (%d items): $%.2f", includedItems, subtotal)
-        if discountPercent > 0 {
-            totalLabel.text = String(format: "Total: $%.2f  (–$%.2f at %.1f%%)", total, discount, discountPercent)
-            totalLabel.textColor = .systemGreen
-        } else {
-            totalLabel.text = String(format: "Total: $%.2f", total)
-            totalLabel.textColor = .label
-        }
+
+        subtotalValue.text = String(format: "$%.2f", subtotal)
+        discountValue.text = discountPercent > 0
+            ? String(format: "−$%.2f", discount)
+            : "$0.00"
+        discountValue.textColor = discountPercent > 0 ? .systemOrange : .secondaryLabel
+        totalValue.text = String(format: "$%.2f", total)
+
+        var hints: [String] = []
         if usingDefaults {
-            statusLabel.text = "Using default rates ($50/sqm window, $100/sqm floor) — product API unavailable."
-        } else {
-            statusLabel.text = roomQuotes.isEmpty ? "No rooms in this house yet." : ""
+            hints.append("Using default rates ($50 window · $100 floor) — product API unavailable.")
         }
+        if roomQuotes.isEmpty {
+            hints.append("No rooms in this house yet.")
+        }
+        let excluded = roomQuotes.filter { !$0.isIncluded }.count
+        if excluded > 0 {
+            hints.append("\(excluded) room\(excluded == 1 ? "" : "s") excluded.")
+        }
+        statusLabel.text = hints.joined(separator: "  ")
+        statusLabel.isHidden = statusLabel.text?.isEmpty ?? true
     }
 
     // MARK: - Actions
@@ -217,14 +267,6 @@ class QuoteViewController: UIViewController {
         let text = discountField.text?.trimmingCharacters(in: .whitespaces) ?? ""
         discountPercent = max(0, min(100, Double(text) ?? 0))
         updateSummary()
-        view.endEditing(true)
-    }
-
-    @objc private func clearDiscount() {
-        discountPercent = 0
-        discountField.text = ""
-        updateSummary()
-        view.endEditing(true)
     }
 
     @objc private func dismissKeyboard() { view.endEditing(true) }
@@ -264,59 +306,128 @@ extension QuoteViewController: UITableViewDataSource, UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        // +1 for the room subtotal/labour summary row at the end.
-        return roomQuotes[section].items.count + 1
+        return roomQuotes[section].items.count + 1   // +1 for summary row
     }
 
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         let rq = roomQuotes[section]
         let header = UIView()
-        header.backgroundColor = .secondarySystemBackground
+        header.backgroundColor = .systemGroupedBackground
+
+        let card = UIView()
+        card.backgroundColor = .secondarySystemGroupedBackground
+        card.layer.cornerRadius = 10
+        card.translatesAutoresizingMaskIntoConstraints = false
+        header.addSubview(card)
+
+        let accent = UIView()
+        accent.backgroundColor = .quoteTint
+        accent.layer.cornerRadius = 2
+        accent.translatesAutoresizingMaskIntoConstraints = false
+        card.addSubview(accent)
 
         let titleLabel = UILabel()
         titleLabel.text = rq.room.name.isEmpty ? "Unnamed Room" : rq.room.name
-        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.font = .systemFont(ofSize: 17, weight: .semibold)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
+        let countLabel = UILabel()
+        let count = rq.items.count
+        countLabel.text = "\(count) item\(count == 1 ? "" : "s")"
+        countLabel.font = .systemFont(ofSize: 12)
+        countLabel.textColor = .secondaryLabel
+        countLabel.translatesAutoresizingMaskIntoConstraints = false
+
         let toggle = UISwitch()
+        toggle.onTintColor = .quoteTint
         toggle.isOn = rq.isIncluded
         toggle.tag = section
         toggle.translatesAutoresizingMaskIntoConstraints = false
         toggle.addTarget(self, action: #selector(roomToggleChanged(_:)), for: .valueChanged)
 
-        header.addSubview(titleLabel)
-        header.addSubview(toggle)
+        card.addSubview(titleLabel)
+        card.addSubview(countLabel)
+        card.addSubview(toggle)
+
         NSLayoutConstraint.activate([
-            titleLabel.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 16),
-            titleLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            toggle.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -16),
-            toggle.centerYAnchor.constraint(equalTo: header.centerYAnchor),
-            header.heightAnchor.constraint(equalToConstant: 44)
+            card.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 12),
+            card.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -12),
+            card.topAnchor.constraint(equalTo: header.topAnchor, constant: 8),
+            card.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -4),
+
+            accent.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 8),
+            accent.topAnchor.constraint(equalTo: card.topAnchor, constant: 8),
+            accent.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -8),
+            accent.widthAnchor.constraint(equalToConstant: 4),
+
+            titleLabel.leadingAnchor.constraint(equalTo: accent.trailingAnchor, constant: 10),
+            titleLabel.topAnchor.constraint(equalTo: card.topAnchor, constant: 8),
+            titleLabel.trailingAnchor.constraint(lessThanOrEqualTo: toggle.leadingAnchor, constant: -8),
+
+            countLabel.leadingAnchor.constraint(equalTo: accent.trailingAnchor, constant: 10),
+            countLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 2),
+            countLabel.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -8),
+
+            toggle.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            toggle.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -10)
         ])
         return header
     }
 
-    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 44 }
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 60 }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let rq = roomQuotes[indexPath.section]
 
-        // Last row is the room summary.
         if indexPath.row == rq.items.count {
-            let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
+            let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
             cell.selectionStyle = .none
+            cell.backgroundColor = .clear
+
             let labour = rq.labour(roomLabour: QuoteCalculator.roomLabour)
             let total = rq.roomTotal(roomLabour: QuoteCalculator.roomLabour)
+
+            let container = UIView()
+            container.translatesAutoresizingMaskIntoConstraints = false
+            container.backgroundColor = .tertiarySystemGroupedBackground
+            container.layer.cornerRadius = 8
+            cell.contentView.addSubview(container)
+
+            let breakdown = UILabel()
+            breakdown.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
+            breakdown.textColor = .secondaryLabel
+            breakdown.translatesAutoresizingMaskIntoConstraints = false
+
+            let totalLbl = UILabel()
+            totalLbl.font = UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .bold)
+            totalLbl.textAlignment = .right
+            totalLbl.translatesAutoresizingMaskIntoConstraints = false
+
             if rq.isIncluded {
-                cell.textLabel?.text = String(format: "Subtotal: $%.2f  + Labour: $%.2f", rq.subtotal, labour)
-                cell.detailTextLabel?.text = String(format: "Room total: $%.2f", total)
+                breakdown.text = String(format: "Items $%.2f  +  Labour $%.2f", rq.subtotal, labour)
+                totalLbl.text = String(format: "$%.2f", total)
+                totalLbl.textColor = .quoteTint
             } else {
-                cell.textLabel?.text = "Room excluded"
-                cell.detailTextLabel?.text = "—"
+                breakdown.text = "Room excluded from quote"
+                totalLbl.text = "—"
+                totalLbl.textColor = .tertiaryLabel
             }
-            cell.textLabel?.font = .systemFont(ofSize: 13)
-            cell.textLabel?.textColor = .secondaryLabel
-            cell.detailTextLabel?.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
+
+            container.addSubview(breakdown)
+            container.addSubview(totalLbl)
+            NSLayoutConstraint.activate([
+                container.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor, constant: 12),
+                container.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -12),
+                container.topAnchor.constraint(equalTo: cell.contentView.topAnchor, constant: 4),
+                container.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor, constant: -8),
+
+                breakdown.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+                breakdown.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                breakdown.trailingAnchor.constraint(lessThanOrEqualTo: totalLbl.leadingAnchor, constant: -8),
+                totalLbl.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
+                totalLbl.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+                container.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
+            ])
             return cell
         }
 
