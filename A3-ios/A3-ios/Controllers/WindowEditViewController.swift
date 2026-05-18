@@ -187,7 +187,8 @@ class WindowEditViewController: UIViewController {
 
         photoImageView.heightAnchor.constraint(equalToConstant: 150).isActive = true
 
-        [makeLabel("Dimensions (cm)"), dimStack,
+        [makeLabel("Name"), nameField,
+         makeLabel("Dimensions (mm)"), dimStack,
          makeLabel("Product"), productLabel, selectProductButton,
          makeLabel("Photo"), photoImageView, selectPhotoButton, removePhotoButton,
          priceLabel, saveButton
@@ -202,19 +203,23 @@ class WindowEditViewController: UIViewController {
 
     private func populateIfEditing() {
         guard case .edit(let window) = mode else { return }
-        widthField.text = String(format: "%.0f", window.widthCm)
-        heightField.text = String(format: "%.0f", window.heightCm)
+        nameField.text = window.name
+        widthField.text = window.widthMm > 0 ? "\(window.widthMm)" : ""
+        heightField.text = window.heightMm > 0 ? "\(window.heightMm)" : ""
         existingPhotoBase64 = window.photoBase64
         if let p64 = window.photoBase64, let image = ImageStore.shared.decodeImage(p64) {
             photoImageView.image = image
             removePhotoButton.isHidden = false
         }
-        if !window.productId.isEmpty {
-            productLabel.text = "\(window.productName) — \(window.variantName)"
+        if !window.selectedProductId.isEmpty {
+            productLabel.text = window.selectedProductVariant.isEmpty
+                ? window.selectedProductName
+                : "\(window.selectedProductName) — \(window.selectedProductVariant)"
             productLabel.textColor = .label
-            selectedProduct = Product(id: window.productId, name: window.productName,
-                                      pricePerSqm: window.pricePerSqm)
-            selectedVariant = ProductVariant(id: window.variantId, name: window.variantName)
+            selectedProduct = Product(id: window.selectedProductId,
+                                      name: window.selectedProductName,
+                                      pricePerSqm: 0)
+            selectedVariant = ProductVariant(id: "", name: window.selectedProductVariant)
             selectedPanelCount = window.panelCount
             updatePriceLabel()
         }
@@ -233,23 +238,22 @@ class WindowEditViewController: UIViewController {
     @objc private func dimensionsChanged() { updatePriceLabel() }
 
     private func updatePriceLabel() {
-        guard let w = Double(widthField.text ?? ""), let h = Double(heightField.text ?? ""),
+        guard let w = Int(widthField.text ?? ""), let h = Int(heightField.text ?? ""),
               let product = selectedProduct, w > 0, h > 0 else {
             priceLabel.text = "Item price: —"
             return
         }
-        let area = (w / 100.0) * (h / 100.0)
-        let price = product.pricePerSqm * area
+        let area = (Double(w) / 1000.0) * (Double(h) / 1000.0)
+        let rate = product.pricePerSqm > 0 ? product.pricePerSqm : QuoteCalculator.defaultWindowRate
+        let price = rate * area
         priceLabel.text = String(format: "Item price: $%.2f (%.4f sqm)", price, area)
     }
 
     @objc private func selectProductTapped() {
         let vc = ProductListViewController()
         vc.category = "window"
-        let widthCm = Double(widthField.text ?? "") ?? 0
-        let heightCm = Double(heightField.text ?? "") ?? 0
-        vc.spaceWidthMm = Int((widthCm * 10).rounded())
-        vc.spaceHeightMm = Int((heightCm * 10).rounded())
+        vc.spaceWidthMm = Int(widthField.text ?? "") ?? 0
+        vc.spaceHeightMm = Int(heightField.text ?? "") ?? 0
         vc.onProductSelected = { [weak self] product, variant, panelCount in
             guard let self = self else { return }
             self.selectedProduct = product
@@ -278,18 +282,20 @@ class WindowEditViewController: UIViewController {
     }
 
     @objc private func saveTapped() {
-        guard let widthText = widthField.text, let width = Double(widthText),
-              width >= minDimensionCm, width <= maxDimensionCm else {
+        guard let widthText = widthField.text, let width = Int(widthText),
+              width >= minDimensionMm, width <= maxDimensionMm else {
             showAlert(title: "Validation Error",
-                      message: "Width must be between \(Int(minDimensionCm)) and \(Int(maxDimensionCm)) cm.")
+                      message: "Width must be between \(minDimensionMm) and \(maxDimensionMm) mm.")
             return
         }
-        guard let heightText = heightField.text, let height = Double(heightText),
-              height >= minDimensionCm, height <= maxDimensionCm else {
+        guard let heightText = heightField.text, let height = Int(heightText),
+              height >= minDimensionMm, height <= maxDimensionMm else {
             showAlert(title: "Validation Error",
-                      message: "Height must be between \(Int(minDimensionCm)) and \(Int(maxDimensionCm)) cm.")
+                      message: "Height must be between \(minDimensionMm) and \(maxDimensionMm) mm.")
             return
         }
+
+        let name = nameField.text?.trimmingCharacters(in: .whitespaces).nonEmpty ?? "Unnamed"
 
         var photoBase64: String? = existingPhotoBase64
         if let img = selectedImage {
@@ -298,18 +304,18 @@ class WindowEditViewController: UIViewController {
 
         let productId = selectedProduct?.id ?? ""
         let productName = selectedProduct?.name ?? ""
-        let pricePerSqm = selectedProduct?.pricePerSqm ?? 0
-        let variantId = selectedVariant?.id ?? ""
         let variantName = selectedVariant?.name ?? ""
 
         switch mode {
         case .add:
-            let window = WindowItem(roomId: room.id, widthCm: width, heightCm: height,
-                                    productId: productId, variantId: variantId,
-                                    productName: productName, variantName: variantName,
-                                    pricePerSqm: pricePerSqm, photoBase64: photoBase64,
-                                    panelCount: selectedPanelCount)
-            FirestoreService.shared.addWindow(window, houseId: house.id, roomId: room.id) { [weak self] error in
+            let window = WindowItem(roomId: room.id, name: name,
+                                    widthMm: width, heightMm: height,
+                                    selectedProductId: productId,
+                                    selectedProductName: productName,
+                                    selectedProductVariant: variantName,
+                                    panelCount: selectedPanelCount,
+                                    photoBase64: photoBase64)
+            FirestoreService.shared.addWindow(window) { [weak self] error in
                 if let error = error {
                     HapticFeedback.error()
                     self?.showAlert(title: "Error", message: error.localizedDescription)
@@ -319,16 +325,15 @@ class WindowEditViewController: UIViewController {
                 }
             }
         case .edit(var window):
-            window.widthCm = width
-            window.heightCm = height
-            window.productId = productId
-            window.variantId = variantId
-            window.productName = productName
-            window.variantName = variantName
-            window.pricePerSqm = pricePerSqm
+            window.name = name
+            window.widthMm = width
+            window.heightMm = height
+            window.selectedProductId = productId
+            window.selectedProductName = productName
+            window.selectedProductVariant = variantName
             window.photoBase64 = photoBase64
             window.panelCount = selectedPanelCount
-            FirestoreService.shared.updateWindow(window, houseId: house.id, roomId: room.id) { [weak self] error in
+            FirestoreService.shared.updateWindow(window) { [weak self] error in
                 if let error = error {
                     self?.showAlert(title: "Error", message: error.localizedDescription)
                 } else {
