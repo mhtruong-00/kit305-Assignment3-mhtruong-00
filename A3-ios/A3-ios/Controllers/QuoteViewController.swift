@@ -103,6 +103,7 @@ class QuoteViewController: UIViewController {
             action: #selector(shareTapped))
         setupLayout()
         loadQuote()
+        installNotesHeaderIfNeeded()
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
@@ -211,8 +212,57 @@ class QuoteViewController: UIViewController {
 
     // MARK: - Loading
 
-    private func loadQuote() {
-        activityIndicator.startAnimating()
+    private func installNotesHeaderIfNeeded() {
+        let trimmed = house.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let header = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 0))
+        let card = UIView()
+        card.backgroundColor = UIColor.quoteTint.withAlphaComponent(0.10)
+        card.layer.cornerRadius = 10
+        card.translatesAutoresizingMaskIntoConstraints = false
+
+        let title = UILabel()
+        title.text = "📝 Notes"
+        title.font = .systemFont(ofSize: 12, weight: .heavy)
+        title.textColor = .quoteTint
+        title.translatesAutoresizingMaskIntoConstraints = false
+
+        let body = UILabel()
+        body.text = trimmed
+        body.numberOfLines = 0
+        body.font = .systemFont(ofSize: 14)
+        body.textColor = .label
+        body.translatesAutoresizingMaskIntoConstraints = false
+
+        header.addSubview(card)
+        card.addSubview(title)
+        card.addSubview(body)
+        NSLayoutConstraint.activate([
+            card.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 12),
+            card.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -12),
+            card.topAnchor.constraint(equalTo: header.topAnchor, constant: 8),
+            card.bottomAnchor.constraint(equalTo: header.bottomAnchor, constant: -8),
+            title.topAnchor.constraint(equalTo: card.topAnchor, constant: 10),
+            title.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
+            title.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12),
+            body.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 4),
+            body.leadingAnchor.constraint(equalTo: card.leadingAnchor, constant: 12),
+            body.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -12),
+            body.bottomAnchor.constraint(equalTo: card.bottomAnchor, constant: -10)
+        ])
+        // Size to fit
+        header.setNeedsLayout()
+        header.layoutIfNeeded()
+        let height = card.systemLayoutSizeFitting(
+            CGSize(width: view.bounds.width - 24,
+                   height: UIView.layoutFittingCompressedSize.height),
+            withHorizontalFittingPriority: .required,
+            verticalFittingPriority: .fittingSizeLevel).height + 16
+        header.frame.size.height = height
+        tableView.tableHeaderView = header
+    }
+
+    private func loadQuote() {        activityIndicator.startAnimating()
         statusLabel.text = "Loading quote…"
         FirestoreService.shared.loadQuoteData(houseId: house.id) { [weak self] rooms, windows, floors in
             guard let self = self else { return }
