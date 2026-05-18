@@ -84,7 +84,7 @@ class FloorSpaceEditViewController: UIViewController {
 
     private let selectPhotoButton: UIButton = {
         let btn = UIButton(type: .system)
-        btn.setTitle("Select Photo from Gallery", for: .normal)
+        btn.setTitle("Add Photo (Camera or Gallery)", for: .normal)
         return btn
     }()
 
