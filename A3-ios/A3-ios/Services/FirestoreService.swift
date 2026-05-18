@@ -1,55 +1,80 @@
 // With support from GitHub Copilot
+// Top-level Firestore collections (houses, rooms, windows, floorspaces) to
+// match the Android app's schema so both clients share the same database.
 import Foundation
 import FirebaseFirestore
 
 class FirestoreService {
     static let shared = FirestoreService()
-    private let db = Firestore.firestore()
-
+    let db = Firestore.firestore()
     private init() {}
 
     // MARK: - Houses
 
     func listenToHouses(completion: @escaping ([House]) -> Void) -> ListenerRegistration {
         return db.collection("houses")
-            .order(by: "createdAt", descending: false)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    completion([])
-                    return
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self = self, let docs = snapshot?.documents else {
+                    completion([]); return
                 }
-                let houses = documents.compactMap { self?.houseFrom(doc: $0) }
-                completion(houses)
+                completion(docs.map { self.houseFrom(doc: $0) })
             }
     }
 
     func addHouse(_ house: House, completion: @escaping (Error?) -> Void) {
-        var data = houseData(from: house)
-        data["createdAt"] = house.createdAt
-        db.collection("houses").addDocument(data: data, completion: completion)
+        db.collection("houses").addDocument(data: houseData(from: house), completion: completion)
     }
 
     func updateHouse(_ house: House, completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(house.id).updateData(houseData(from: house), completion: completion)
+        db.collection("houses").document(house.id)
+            .updateData(houseData(from: house), completion: completion)
     }
 
+    /// Deletes the house and all of its rooms (and their items) — matches
+    /// the Android cascade behaviour, just with serial sub-queries.
     func deleteHouse(_ houseId: String, completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId).delete(completion: completion)
+        let roomsQuery = db.collection("rooms").whereField("houseId", isEqualTo: houseId)
+        roomsQuery.getDocuments { [weak self] snap, err in
+            guard let self = self else { return }
+            if let err = err { completion(err); return }
+            let batch = self.db.batch()
+            let roomIds = snap?.documents.map { $0.documentID } ?? []
+            for roomId in roomIds {
+                batch.deleteDocument(self.db.collection("rooms").document(roomId))
+            }
+            batch.deleteDocument(self.db.collection("houses").document(houseId))
+            batch.commit { batchErr in
+                if let batchErr = batchErr { completion(batchErr); return }
+                // Best-effort cleanup of nested windows/floorspaces.
+                let group = DispatchGroup()
+                for rid in roomIds {
+                    for coll in ["windows", "floorspaces"] {
+                        group.enter()
+                        self.db.collection(coll).whereField("roomId", isEqualTo: rid)
+                            .getDocuments { itemsSnap, _ in
+                                let inner = self.db.batch()
+                                itemsSnap?.documents.forEach { inner.deleteDocument($0.reference) }
+                                inner.commit { _ in group.leave() }
+                            }
+                    }
+                }
+                group.notify(queue: .main) { completion(nil) }
+            }
+        }
     }
 
-    private func houseFrom(doc: DocumentSnapshot) -> House? {
-        guard let data = doc.data() else { return nil }
+    private func houseFrom(doc: QueryDocumentSnapshot) -> House {
+        let data = doc.data()
         return House(
             id: doc.documentID,
-            name: data["name"] as? String ?? "",
-            address: data["address"] as? String ?? "",
-            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            name: data["customerName"] as? String ?? "",
+            address: data["address"] as? String ?? ""
         )
     }
 
     private func houseData(from house: House) -> [String: Any] {
         return [
-            "name": house.name,
+            "customerName": house.name,
             "address": house.address
         ]
     }
@@ -57,240 +82,228 @@ class FirestoreService {
     // MARK: - Rooms
 
     func listenToRooms(houseId: String, completion: @escaping ([Room]) -> Void) -> ListenerRegistration {
-        return db.collection("houses").document(houseId).collection("rooms")
-            .order(by: "createdAt", descending: false)
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    completion([])
-                    return
+        return db.collection("rooms")
+            .whereField("houseId", isEqualTo: houseId)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self = self, let docs = snapshot?.documents else {
+                    completion([]); return
                 }
-                let rooms = documents.compactMap { self?.roomFrom(doc: $0, houseId: houseId) }
-                completion(rooms)
+                completion(docs.map { self.roomFrom(doc: $0) })
             }
     }
 
-    func addRoom(_ room: Room, houseId: String, completion: @escaping (Error?) -> Void) {
-        var data = roomData(from: room)
-        data["createdAt"] = room.createdAt
-        db.collection("houses").document(houseId).collection("rooms")
-            .addDocument(data: data, completion: completion)
+    func addRoom(_ room: Room, completion: @escaping (Error?) -> Void) {
+        db.collection("rooms").addDocument(data: roomData(from: room), completion: completion)
     }
 
-    func updateRoom(_ room: Room, houseId: String, completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId).collection("rooms")
-            .document(room.id).updateData(roomData(from: room), completion: completion)
+    func updateRoom(_ room: Room, completion: @escaping (Error?) -> Void) {
+        db.collection("rooms").document(room.id)
+            .updateData(roomData(from: room), completion: completion)
     }
 
-    func deleteRoom(_ roomId: String, houseId: String, completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId).collection("rooms")
-            .document(roomId).delete(completion: completion)
+    func updateRoomFields(_ roomId: String, fields: [String: Any],
+                          completion: @escaping (Error?) -> Void) {
+        db.collection("rooms").document(roomId).updateData(fields, completion: completion)
     }
 
-    private func roomFrom(doc: DocumentSnapshot, houseId: String) -> Room? {
-        guard let data = doc.data() else { return nil }
+    func deleteRoom(_ roomId: String, completion: @escaping (Error?) -> Void) {
+        // Cascade-delete the room's windows/floorspaces too.
+        let group = DispatchGroup()
+        for coll in ["windows", "floorspaces"] {
+            group.enter()
+            db.collection(coll).whereField("roomId", isEqualTo: roomId)
+                .getDocuments { [weak self] snap, _ in
+                    guard let self = self else { group.leave(); return }
+                    let batch = self.db.batch()
+                    snap?.documents.forEach { batch.deleteDocument($0.reference) }
+                    batch.commit { _ in group.leave() }
+                }
+        }
+        group.notify(queue: .main) { [weak self] in
+            self?.db.collection("rooms").document(roomId).delete(completion: completion)
+        }
+    }
+
+    private func roomFrom(doc: QueryDocumentSnapshot) -> Room {
+        let data = doc.data()
         return Room(
             id: doc.documentID,
-            houseId: houseId,
+            houseId: data["houseId"] as? String ?? "",
             name: data["name"] as? String ?? "",
-            createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+            photoBase64: (data["photoBase64"] as? String)?.nilIfEmpty,
+            photoUrl: (data["photoUrl"] as? String)?.nilIfEmpty
         )
     }
 
     private func roomData(from room: Room) -> [String: Any] {
         return [
-            "name": room.name
+            "houseId": room.houseId,
+            "name": room.name,
+            "photoBase64": room.photoBase64 ?? "",
+            "photoUrl": room.photoUrl ?? ""
         ]
     }
 
     // MARK: - Windows
 
-    func listenToWindows(houseId: String, roomId: String,
+    func listenToWindows(roomId: String,
                          completion: @escaping ([WindowItem]) -> Void) -> ListenerRegistration {
-        return db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("windows")
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    completion([])
-                    return
+        return db.collection("windows")
+            .whereField("roomId", isEqualTo: roomId)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self = self, let docs = snapshot?.documents else {
+                    completion([]); return
                 }
-                let items = documents.compactMap { self?.windowFrom(doc: $0, roomId: roomId) }
-                completion(items)
+                completion(docs.map { self.windowFrom(doc: $0) })
             }
     }
 
-    func addWindow(_ window: WindowItem, houseId: String, roomId: String,
-                   completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("windows")
-            .addDocument(data: windowData(from: window), completion: completion)
+    func addWindow(_ window: WindowItem, completion: @escaping (Error?) -> Void) {
+        db.collection("windows").addDocument(data: windowData(from: window), completion: completion)
     }
 
-    func updateWindow(_ window: WindowItem, houseId: String, roomId: String,
-                      completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("windows").document(window.id)
+    func updateWindow(_ window: WindowItem, completion: @escaping (Error?) -> Void) {
+        db.collection("windows").document(window.id)
             .updateData(windowData(from: window), completion: completion)
     }
 
-    func deleteWindow(_ windowId: String, houseId: String, roomId: String,
-                      completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("windows").document(windowId)
-            .delete(completion: completion)
+    func deleteWindow(_ windowId: String, completion: @escaping (Error?) -> Void) {
+        db.collection("windows").document(windowId).delete(completion: completion)
     }
 
-    private func windowFrom(doc: DocumentSnapshot, roomId: String) -> WindowItem? {
-        guard let data = doc.data() else { return nil }
+    private func windowFrom(doc: QueryDocumentSnapshot) -> WindowItem {
+        let data = doc.data()
         return WindowItem(
             id: doc.documentID,
-            roomId: roomId,
-            widthCm: data["widthCm"] as? Double ?? 0,
-            heightCm: data["heightCm"] as? Double ?? 0,
-            productId: data["productId"] as? String ?? "",
-            variantId: data["variantId"] as? String ?? "",
-            productName: data["productName"] as? String ?? "",
-            variantName: data["variantName"] as? String ?? "",
-            pricePerSqm: data["pricePerSqm"] as? Double ?? 0,
-            photoBase64: data["photoBase64"] as? String,
-            panelCount: data["panelCount"] as? Int ?? 1
+            roomId: data["roomId"] as? String ?? "",
+            name: data["name"] as? String ?? "",
+            widthMm: Self.intValue(data["widthMm"]),
+            heightMm: Self.intValue(data["heightMm"]),
+            selectedProductId: data["selectedProductId"] as? String ?? "",
+            selectedProductName: data["selectedProductName"] as? String ?? "",
+            selectedProductVariant: data["selectedProductVariant"] as? String ?? "",
+            panelCount: Self.intValue(data["panelCount"], default: 1),
+            photoBase64: (data["photoBase64"] as? String)?.nilIfEmpty
         )
     }
 
-    private func windowData(from window: WindowItem) -> [String: Any] {
-        var data: [String: Any] = [
-            "widthCm": window.widthCm,
-            "heightCm": window.heightCm,
-            "productId": window.productId,
-            "variantId": window.variantId,
-            "productName": window.productName,
-            "variantName": window.variantName,
-            "pricePerSqm": window.pricePerSqm,
-            "panelCount": window.panelCount
+    private func windowData(from w: WindowItem) -> [String: Any] {
+        return [
+            "roomId": w.roomId,
+            "name": w.name,
+            "widthMm": w.widthMm,
+            "heightMm": w.heightMm,
+            "selectedProductId": w.selectedProductId,
+            "selectedProductName": w.selectedProductName,
+            "selectedProductVariant": w.selectedProductVariant,
+            "panelCount": w.panelCount,
+            "photoBase64": w.photoBase64 ?? ""
         ]
-        if let photo = window.photoBase64 {
-            data["photoBase64"] = photo
-        }
-        return data
     }
 
     // MARK: - Floor Spaces
 
-    func listenToFloorSpaces(houseId: String, roomId: String,
-                              completion: @escaping ([FloorSpace]) -> Void) -> ListenerRegistration {
-        return db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("floors")
-            .addSnapshotListener { [weak self] snapshot, error in
-                guard let documents = snapshot?.documents else {
-                    completion([])
-                    return
+    func listenToFloorSpaces(roomId: String,
+                             completion: @escaping ([FloorSpace]) -> Void) -> ListenerRegistration {
+        return db.collection("floorspaces")
+            .whereField("roomId", isEqualTo: roomId)
+            .addSnapshotListener { [weak self] snapshot, _ in
+                guard let self = self, let docs = snapshot?.documents else {
+                    completion([]); return
                 }
-                let items = documents.compactMap { self?.floorFrom(doc: $0, roomId: roomId) }
-                completion(items)
+                completion(docs.map { self.floorFrom(doc: $0) })
             }
     }
 
-    func addFloorSpace(_ floor: FloorSpace, houseId: String, roomId: String,
-                       completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("floors")
-            .addDocument(data: floorData(from: floor), completion: completion)
+    func addFloorSpace(_ floor: FloorSpace, completion: @escaping (Error?) -> Void) {
+        db.collection("floorspaces").addDocument(data: floorData(from: floor), completion: completion)
     }
 
-    func updateFloorSpace(_ floor: FloorSpace, houseId: String, roomId: String,
-                          completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("floors").document(floor.id)
+    func updateFloorSpace(_ floor: FloorSpace, completion: @escaping (Error?) -> Void) {
+        db.collection("floorspaces").document(floor.id)
             .updateData(floorData(from: floor), completion: completion)
     }
 
-    func deleteFloorSpace(_ floorId: String, houseId: String, roomId: String,
-                          completion: @escaping (Error?) -> Void) {
-        db.collection("houses").document(houseId)
-            .collection("rooms").document(roomId)
-            .collection("floors").document(floorId)
-            .delete(completion: completion)
+    func deleteFloorSpace(_ floorId: String, completion: @escaping (Error?) -> Void) {
+        db.collection("floorspaces").document(floorId).delete(completion: completion)
     }
 
-    private func floorFrom(doc: DocumentSnapshot, roomId: String) -> FloorSpace? {
-        guard let data = doc.data() else { return nil }
+    private func floorFrom(doc: QueryDocumentSnapshot) -> FloorSpace {
+        let data = doc.data()
         return FloorSpace(
             id: doc.documentID,
-            roomId: roomId,
-            widthCm: data["widthCm"] as? Double ?? 0,
-            lengthCm: data["lengthCm"] as? Double ?? 0,
-            productId: data["productId"] as? String ?? "",
-            variantId: data["variantId"] as? String ?? "",
-            productName: data["productName"] as? String ?? "",
-            variantName: data["variantName"] as? String ?? "",
-            pricePerSqm: data["pricePerSqm"] as? Double ?? 0,
-            photoBase64: data["photoBase64"] as? String
+            roomId: data["roomId"] as? String ?? "",
+            name: data["name"] as? String ?? "",
+            widthMm: Self.intValue(data["widthMm"]),
+            depthMm: Self.intValue(data["depthMm"]),
+            selectedProductId: data["selectedProductId"] as? String ?? "",
+            selectedProductName: data["selectedProductName"] as? String ?? "",
+            selectedProductVariant: data["selectedProductVariant"] as? String ?? "",
+            photoBase64: (data["photoBase64"] as? String)?.nilIfEmpty
         )
     }
 
-    private func floorData(from floor: FloorSpace) -> [String: Any] {
-        var data: [String: Any] = [
-            "widthCm": floor.widthCm,
-            "lengthCm": floor.lengthCm,
-            "productId": floor.productId,
-            "variantId": floor.variantId,
-            "productName": floor.productName,
-            "variantName": floor.variantName,
-            "pricePerSqm": floor.pricePerSqm
+    private func floorData(from f: FloorSpace) -> [String: Any] {
+        return [
+            "roomId": f.roomId,
+            "name": f.name,
+            "widthMm": f.widthMm,
+            "depthMm": f.depthMm,
+            "selectedProductId": f.selectedProductId,
+            "selectedProductName": f.selectedProductName,
+            "selectedProductVariant": f.selectedProductVariant,
+            "photoBase64": f.photoBase64 ?? ""
         ]
-        if let photo = floor.photoBase64 {
-            data["photoBase64"] = photo
-        }
-        return data
     }
 
-    // MARK: - Quote Data Loader
+    // MARK: - Quote loader
 
+    /// Loads the rooms, windows and floor spaces for a house in a single
+    /// composite operation, used by the Quote screen.
     func loadQuoteData(houseId: String,
                        completion: @escaping ([Room], [String: [WindowItem]], [String: [FloorSpace]]) -> Void) {
-        db.collection("houses").document(houseId).collection("rooms")
-            .order(by: "createdAt", descending: false)
-            .getDocuments { [weak self] snapshot, error in
-                guard let roomDocs = snapshot?.documents, let self = self else {
-                    completion([], [:], [:])
-                    return
-                }
-                let rooms = roomDocs.compactMap { self.roomFrom(doc: $0, houseId: houseId) }
-                var allWindows: [String: [WindowItem]] = [:]
-                var allFloors: [String: [FloorSpace]] = [:]
+        db.collection("rooms").whereField("houseId", isEqualTo: houseId)
+            .getDocuments { [weak self] roomSnap, _ in
+                guard let self = self else { completion([], [:], [:]); return }
+                let rooms = (roomSnap?.documents ?? []).map { self.roomFrom(doc: $0) }
+                    .sorted { $0.name.lowercased() < $1.name.lowercased() }
+                if rooms.isEmpty { completion([], [:], [:]); return }
+
+                var windowsByRoom: [String: [WindowItem]] = [:]
+                var floorsByRoom: [String: [FloorSpace]] = [:]
                 let group = DispatchGroup()
-
-                for room in rooms {
+                for r in rooms {
                     group.enter()
-                    self.db.collection("houses").document(houseId)
-                        .collection("rooms").document(room.id)
-                        .collection("windows").getDocuments { snap, _ in
-                            allWindows[room.id] = snap?.documents.compactMap {
-                                self.windowFrom(doc: $0, roomId: room.id)
-                            } ?? []
+                    self.db.collection("windows").whereField("roomId", isEqualTo: r.id)
+                        .getDocuments { snap, _ in
+                            windowsByRoom[r.id] = (snap?.documents ?? []).map { self.windowFrom(doc: $0) }
                             group.leave()
                         }
-
                     group.enter()
-                    self.db.collection("houses").document(houseId)
-                        .collection("rooms").document(room.id)
-                        .collection("floors").getDocuments { snap, _ in
-                            allFloors[room.id] = snap?.documents.compactMap {
-                                self.floorFrom(doc: $0, roomId: room.id)
-                            } ?? []
+                    self.db.collection("floorspaces").whereField("roomId", isEqualTo: r.id)
+                        .getDocuments { snap, _ in
+                            floorsByRoom[r.id] = (snap?.documents ?? []).map { self.floorFrom(doc: $0) }
                             group.leave()
                         }
                 }
-
                 group.notify(queue: .main) {
-                    completion(rooms, allWindows, allFloors)
+                    completion(rooms, windowsByRoom, floorsByRoom)
                 }
             }
     }
+
+    // MARK: - Helpers
+
+    private static func intValue(_ any: Any?, default def: Int = 0) -> Int {
+        if let i = any as? Int { return i }
+        if let l = any as? Int64 { return Int(l) }
+        if let d = any as? Double { return Int(d) }
+        if let n = any as? NSNumber { return n.intValue }
+        if let s = any as? String, let i = Int(s) { return i }
+        return def
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? { isEmpty ? nil : self }
 }
