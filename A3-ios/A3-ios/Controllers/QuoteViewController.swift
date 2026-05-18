@@ -1,20 +1,37 @@
 // With support from GitHub Copilot
+// Quote screen aligned with Android `QuoteActivity`:
+//  * Loads rooms + windows + floors for the selected house.
+//  * Fetches product rates from the API; falls back to defaults if unavailable.
+//  * Per-room subtotal + $200 labour for measured rooms.
+//  * Whole-house discount %.
+//  * Per-room and per-item include toggles.
+//  * Shares the resulting CSV.
 import UIKit
 
 class QuoteViewController: UIViewController {
 
     var house: House!
 
-    private var lineItems: [QuoteLineItem] = []
+    private var roomQuotes: [RoomQuote] = []
+    private var usingDefaults: Bool = false
     private var discountPercent: Double = 0
 
-    private let tableView = UITableView(frame: .zero, style: .plain)
+    private let tableView = UITableView(frame: .zero, style: .grouped)
 
     private let summaryView: UIView = {
         let v = UIView()
         v.backgroundColor = .systemGroupedBackground
         v.translatesAutoresizingMaskIntoConstraints = false
         return v
+    }()
+
+    private let statusLabel: UILabel = {
+        let lbl = UILabel()
+        lbl.font = UIFont.systemFont(ofSize: 12)
+        lbl.textColor = .secondaryLabel
+        lbl.numberOfLines = 0
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
     }()
 
     private let subtotalLabel: UILabel = {
@@ -26,7 +43,7 @@ class QuoteViewController: UIViewController {
 
     private let discountField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Discount %"
+        tf.placeholder = "%"
         tf.borderStyle = .roundedRect
         tf.keyboardType = .decimalPad
         tf.textAlignment = .center
@@ -42,18 +59,25 @@ class QuoteViewController: UIViewController {
         return lbl
     }()
 
+    private let applyDiscountButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("Apply", for: .normal)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+
+    private let clearDiscountButton: UIButton = {
+        let btn = UIButton(type: .system)
+        btn.setTitle("Clear", for: .normal)
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        return btn
+    }()
+
     private let totalLabel: UILabel = {
         let lbl = UILabel()
         lbl.font = UIFont.monospacedSystemFont(ofSize: 18, weight: .bold)
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
-    }()
-
-    private let applyDiscountButton: UIButton = {
-        let btn = UIButton(type: .system)
-        btn.setTitle("Apply %", for: .normal)
-        btn.translatesAutoresizingMaskIntoConstraints = false
-        return btn
     }()
 
     private let activityIndicator = UIActivityIndicatorView(style: .medium)
@@ -63,17 +87,19 @@ class QuoteViewController: UIViewController {
         view.backgroundColor = .systemBackground
         title = "Quote — \(house.name)"
         navigationItem.backButtonTitle = ""
-        navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(barButtonSystemItem: .action, target: self, action: #selector(shareTapped)),
-            UIBarButtonItem(title: "Select All", style: .plain, target: self, action: #selector(toggleSelectAll))
-        ]
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .action,
+            target: self,
+            action: #selector(shareTapped))
         setupLayout()
-        loadQuoteData()
+        loadQuote()
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
         tap.cancelsTouchesInView = false
         view.addGestureRecognizer(tap)
     }
+
+    // MARK: - Layout
 
     private func setupLayout() {
         tableView.translatesAutoresizingMaskIntoConstraints = false
@@ -85,7 +111,7 @@ class QuoteViewController: UIViewController {
 
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
 
-        let discountRow = UIStackView(arrangedSubviews: [discountLabel, discountField, applyDiscountButton])
+        let discountRow = UIStackView(arrangedSubviews: [discountLabel, discountField, applyDiscountButton, clearDiscountButton])
         discountRow.axis = .horizontal
         discountRow.spacing = 8
         discountRow.translatesAutoresizingMaskIntoConstraints = false
@@ -95,6 +121,7 @@ class QuoteViewController: UIViewController {
         view.addSubview(summaryView)
         view.addSubview(activityIndicator)
 
+        summaryView.addSubview(statusLabel)
         summaryView.addSubview(subtotalLabel)
         summaryView.addSubview(discountRow)
         summaryView.addSubview(totalLabel)
@@ -104,7 +131,11 @@ class QuoteViewController: UIViewController {
             summaryView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             summaryView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
 
-            subtotalLabel.topAnchor.constraint(equalTo: summaryView.topAnchor, constant: 12),
+            statusLabel.topAnchor.constraint(equalTo: summaryView.topAnchor, constant: 10),
+            statusLabel.leadingAnchor.constraint(equalTo: summaryView.leadingAnchor, constant: 16),
+            statusLabel.trailingAnchor.constraint(equalTo: summaryView.trailingAnchor, constant: -16),
+
+            subtotalLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 4),
             subtotalLabel.leadingAnchor.constraint(equalTo: summaryView.leadingAnchor, constant: 16),
             subtotalLabel.trailingAnchor.constraint(equalTo: summaryView.trailingAnchor, constant: -16),
 
@@ -127,111 +158,187 @@ class QuoteViewController: UIViewController {
         ])
 
         applyDiscountButton.addTarget(self, action: #selector(applyDiscount), for: .touchUpInside)
+        clearDiscountButton.addTarget(self, action: #selector(clearDiscount), for: .touchUpInside)
         discountField.addTarget(self, action: #selector(applyDiscount), for: .editingDidEndOnExit)
         discountField.addDoneInputAccessory(target: self, action: #selector(applyDiscount))
     }
 
-    private func loadQuoteData() {
+    // MARK: - Loading
+
+    private func loadQuote() {
         activityIndicator.startAnimating()
+        statusLabel.text = "Loading quote…"
         FirestoreService.shared.loadQuoteData(houseId: house.id) { [weak self] rooms, windows, floors in
             guard let self = self else { return }
-            self.activityIndicator.stopAnimating()
-            self.lineItems = QuoteCalculator.shared.buildLineItems(
-                rooms: rooms, windowsByRoom: windows, floorsByRoom: floors)
-            self.tableView.reloadData()
-            self.updateSummary()
+            // Now fetch all products so we can resolve rates.
+            ProductAPI.shared.fetchProducts(category: nil) { products in
+                self.activityIndicator.stopAnimating()
+                let rates = Dictionary(uniqueKeysWithValues:
+                    products.compactMap { p -> (String, Double)? in
+                        p.id.isEmpty ? nil : (p.id, p.pricePerSqm)
+                    })
+                self.usingDefaults = products.isEmpty
+                self.roomQuotes = QuoteCalculator.shared.buildRoomQuotes(
+                    rooms: rooms,
+                    windowsByRoom: windows,
+                    floorsByRoom: floors,
+                    productRates: rates)
+                self.tableView.reloadData()
+                self.updateSummary()
+            }
         }
     }
 
     private func updateSummary() {
-        let subtotal = QuoteCalculator.shared.subtotal(from: lineItems)
-        let total = QuoteCalculator.shared.total(from: lineItems, discountPercent: discountPercent)
-        let includedCount = lineItems.filter { $0.isIncluded }.count
-        subtotalLabel.text = String(format: "Subtotal (%d items): $%.2f", includedCount, subtotal)
+        let subtotal = QuoteCalculator.shared.houseSubtotal(from: roomQuotes)
+        let discount = QuoteCalculator.shared.discountAmount(from: roomQuotes, discountPercent: discountPercent)
+        let total    = QuoteCalculator.shared.finalTotal(from: roomQuotes, discountPercent: discountPercent)
+        let includedItems = roomQuotes.flatMap { rq in
+            rq.isIncluded ? rq.items.filter { $0.isIncluded } : []
+        }.count
+        subtotalLabel.text = String(format: "Subtotal (%d items): $%.2f", includedItems, subtotal)
         if discountPercent > 0 {
-            totalLabel.text = String(format: "Total: $%.2f  (%.1f%% off)", total, discountPercent)
+            totalLabel.text = String(format: "Total: $%.2f  (–$%.2f at %.1f%%)", total, discount, discountPercent)
             totalLabel.textColor = .systemGreen
         } else {
             totalLabel.text = String(format: "Total: $%.2f", total)
             totalLabel.textColor = .label
         }
+        if usingDefaults {
+            statusLabel.text = "Using default rates ($50/sqm window, $100/sqm floor) — product API unavailable."
+        } else {
+            statusLabel.text = roomQuotes.isEmpty ? "No rooms in this house yet." : ""
+        }
     }
 
-    @objc private func toggleSelectAll() {
-        let allIncluded = lineItems.allSatisfy { $0.isIncluded }
-        for i in 0..<lineItems.count {
-            lineItems[i].isIncluded = !allIncluded
-        }
-        tableView.reloadData()
-        updateSummary()
-        let selectAllBtn = navigationItem.rightBarButtonItems?.last
-        selectAllBtn?.title = allIncluded ? "Select All" : "Deselect All"
-    }
+    // MARK: - Actions
 
     @objc private func applyDiscount() {
-        let text = discountField.text ?? ""
-        discountPercent = Double(text) ?? 0
-        discountPercent = max(0, min(100, discountPercent))
+        let text = discountField.text?.trimmingCharacters(in: .whitespaces) ?? ""
+        discountPercent = max(0, min(100, Double(text) ?? 0))
         updateSummary()
         view.endEditing(true)
     }
 
-    @objc private func dismissKeyboard() {
+    @objc private func clearDiscount() {
+        discountPercent = 0
+        discountField.text = ""
+        updateSummary()
         view.endEditing(true)
     }
 
-    private func generateCSV(from items: [QuoteLineItem]) -> String {
-        let date = DateFormatter.timestampFormatter.string(from: Date())
-        return CSVExporter.shared.generateCSV(
-            houseName: house.name,
-            address: house.address,
-            items: items,
-            discountPercent: discountPercent
-        )
-    }
+    @objc private func dismissKeyboard() { view.endEditing(true) }
 
     @objc private func shareTapped() {
         applyDiscount()
-        let csv = generateCSV(from: lineItems)
+        let csv = CSVExporter.shared.generateCSV(
+            houseName: house.name,
+            address: house.address,
+            roomQuotes: roomQuotes,
+            discountPercent: discountPercent,
+            usingDefaults: usingDefaults)
         let date = DateFormatter.timestampFormatter.string(from: Date())
-        let safeName = house.name.replacingOccurrences(of: " ", with: "_")
+        let safeName = house.name.replacingOccurrences(of: " ", with: "_").nonEmpty ?? "quote"
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("quote_\(safeName)_\(date).csv")
         do {
             try csv.write(to: tempURL, atomically: true, encoding: .utf8)
             let vc = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
             if let popover = vc.popoverPresentationController {
-                popover.barButtonItem = navigationItem.rightBarButtonItems?.first
+                popover.barButtonItem = navigationItem.rightBarButtonItem
             }
             present(vc, animated: true)
         } catch {
             let vc = UIActivityViewController(activityItems: [csv], applicationActivities: nil)
-            if let popover = vc.popoverPresentationController {
-                popover.barButtonItem = navigationItem.rightBarButtonItems?.first
-            }
             present(vc, animated: true)
         }
     }
 }
 
+// MARK: - Table View
+
 extension QuoteViewController: UITableViewDataSource, UITableViewDelegate {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return lineItems.count
+
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return roomQuotes.count
     }
 
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        // +1 for the room subtotal/labour summary row at the end.
+        return roomQuotes[section].items.count + 1
+    }
+
+    func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
+        let rq = roomQuotes[section]
+        let header = UIView()
+        header.backgroundColor = .secondarySystemBackground
+
+        let titleLabel = UILabel()
+        titleLabel.text = rq.room.name.isEmpty ? "Unnamed Room" : rq.room.name
+        titleLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let toggle = UISwitch()
+        toggle.isOn = rq.isIncluded
+        toggle.tag = section
+        toggle.translatesAutoresizingMaskIntoConstraints = false
+        toggle.addTarget(self, action: #selector(roomToggleChanged(_:)), for: .valueChanged)
+
+        header.addSubview(titleLabel)
+        header.addSubview(toggle)
+        NSLayoutConstraint.activate([
+            titleLabel.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 16),
+            titleLabel.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            toggle.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -16),
+            toggle.centerYAnchor.constraint(equalTo: header.centerYAnchor),
+            header.heightAnchor.constraint(equalToConstant: 44)
+        ])
+        return header
+    }
+
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat { 44 }
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let rq = roomQuotes[indexPath.section]
+
+        // Last row is the room summary.
+        if indexPath.row == rq.items.count {
+            let cell = UITableViewCell(style: .value1, reuseIdentifier: nil)
+            cell.selectionStyle = .none
+            let labour = rq.labour(roomLabour: QuoteCalculator.roomLabour)
+            let total = rq.roomTotal(roomLabour: QuoteCalculator.roomLabour)
+            if rq.isIncluded {
+                cell.textLabel?.text = String(format: "Subtotal: $%.2f  + Labour: $%.2f", rq.subtotal, labour)
+                cell.detailTextLabel?.text = String(format: "Room total: $%.2f", total)
+            } else {
+                cell.textLabel?.text = "Room excluded"
+                cell.detailTextLabel?.text = "—"
+            }
+            cell.textLabel?.font = .systemFont(ofSize: 13)
+            cell.textLabel?.textColor = .secondaryLabel
+            cell.detailTextLabel?.font = .monospacedSystemFont(ofSize: 14, weight: .semibold)
+            return cell
+        }
+
         let cell = tableView.dequeueReusableCell(withIdentifier: QuoteLineCell.reuseIdentifier, for: indexPath) as! QuoteLineCell
-        let item = lineItems[indexPath.row]
+        let item = rq.items[indexPath.row]
         cell.configure(with: item)
+        cell.contentView.alpha = rq.isIncluded ? (item.isIncluded ? 1.0 : 0.5) : 0.4
+        cell.includeSwitch.isEnabled = rq.isIncluded
         cell.switchToggleHandler = { [weak self] isOn in
-            self?.lineItems[indexPath.row].isIncluded = isOn
-            self?.tableView.reloadRows(at: [indexPath], with: .none)
-            self?.updateSummary()
+            guard let self = self else { return }
+            self.roomQuotes[indexPath.section].items[indexPath.row].isIncluded = isOn
+            self.tableView.reloadSections(IndexSet(integer: indexPath.section), with: .none)
+            self.updateSummary()
         }
         return cell
     }
 
-    func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
-        return lineItems.isEmpty ? "No items found. Add windows and floor spaces to rooms first." : "Items (\(lineItems.count))"
+    @objc private func roomToggleChanged(_ sender: UISwitch) {
+        let section = sender.tag
+        guard section >= 0 && section < roomQuotes.count else { return }
+        roomQuotes[section].isIncluded = sender.isOn
+        tableView.reloadSections(IndexSet(integer: section), with: .none)
+        updateSummary()
     }
 }
