@@ -1,55 +1,88 @@
 // With support from GitHub Copilot
+// CSV output mirroring the Android share format.
 import Foundation
 
 class CSVExporter {
     static let shared = CSVExporter()
     private init() {}
 
-    /// Generates CSV rows for all items, with a summary footer.
-    func generateCSV(houseName: String, address: String,
-                     items: [QuoteLineItem], discountPercent: Double) -> String {
-        var lines: [String] = []
+    /// Build the CSV string shared from the quote screen.
+    func generateCSV(houseName: String,
+                     address: String,
+                     roomQuotes: [RoomQuote],
+                     discountPercent: Double,
+                     usingDefaults: Bool) -> String {
 
-        lines.append("Interior Design Quote")
-        lines.append("House: \(escapeCSV(houseName))")
-        lines.append("Address: \(escapeCSV(address))")
-        lines.append("Generated: \(DateFormatter.displayFormatter.string(from: Date()))")
-        lines.append("")
-        lines.append("Room,Type,Product,Variant,Width (cm),Height/Length (cm),Area (sqm),Price/sqm,Item Price,Included")
+        var rows: [String] = []
+        rows.append(csvRow([
+            "type", "house", "address", "room",
+            "item_type", "item_name",
+            "width_mm", "height_or_depth_mm",
+            "product", "variant",
+            "rate_per_sqm", "area_sqm", "item_cost",
+            "room_subtotal", "room_labour", "room_total", "included"
+        ]))
 
-        for item in items {
-            let includedStr = item.isIncluded ? "Yes" : "No"
-            let line = [
-                escapeCSV(item.roomName),
-                escapeCSV(item.typeLabel),
-                escapeCSV(item.productName),
-                escapeCSV(item.variantName),
-                String(format: "%.1f", item.widthCm),
-                String(format: "%.1f", item.heightOrLengthCm),
-                String(format: "%.4f", item.areaSqm),
-                String(format: "%.2f", item.pricePerSqm),
-                String(format: "%.2f", item.itemPrice),
-                includedStr
-            ].joined(separator: ",")
-            lines.append(line)
+        for rq in roomQuotes {
+            for item in rq.items {
+                let includeItem = rq.isIncluded && item.isIncluded
+                let cost = includeItem ? item.itemPrice : 0
+                rows.append(csvRow([
+                    "item",
+                    houseName, address,
+                    rq.room.name.isEmpty ? "Unnamed Room" : rq.room.name,
+                    item.itemType == .window ? "window" : "floor",
+                    item.itemName.isEmpty ? "Unnamed" : item.itemName,
+                    "\(item.widthMm)", "\(item.heightOrDepthMm)",
+                    item.productName, item.variantName,
+                    money(item.pricePerSqm), area(item.areaSqm), money(cost),
+                    "", "", "",
+                    includeItem ? "true" : "false"
+                ]))
+            }
+            let labour = rq.labour(roomLabour: QuoteCalculator.roomLabour)
+            let total  = rq.roomTotal(roomLabour: QuoteCalculator.roomLabour)
+            rows.append(csvRow([
+                "room_total",
+                houseName, address,
+                rq.room.name.isEmpty ? "Unnamed Room" : rq.room.name,
+                "", "", "", "", "", "", "", "",
+                money(rq.subtotal), money(labour), money(total),
+                rq.isIncluded ? "true" : "false"
+            ]))
         }
 
-        lines.append("")
-        let subtotal = QuoteCalculator.shared.subtotal(from: items)
-        let total = QuoteCalculator.shared.total(from: items, discountPercent: discountPercent)
-        lines.append("Subtotal,\(String(format: "%.2f", subtotal))")
-        if discountPercent > 0 {
-            lines.append("Discount,\(String(format: "%.1f", discountPercent))%")
-        }
-        lines.append("Total,\(String(format: "%.2f", total))")
+        let houseSubtotal = QuoteCalculator.shared.houseSubtotal(from: roomQuotes)
+        let discountAmt   = QuoteCalculator.shared.discountAmount(from: roomQuotes, discountPercent: discountPercent)
+        let finalTotal    = QuoteCalculator.shared.finalTotal(from: roomQuotes, discountPercent: discountPercent)
 
-        return lines.joined(separator: "\n")
+        rows.append(csvRow(["summary", houseName, address] + Array(repeating: "", count: 14)))
+        rows.append(csvRow(["subtotal", houseName, address, "", "", "", "", "", "", "", "", "", money(houseSubtotal), "", "", "", ""]))
+        rows.append(csvRow(["discount", houseName, address, "", "", "", "", "", "", "", "", "", money(discountAmt), "", "", "", percent(discountPercent)]))
+        rows.append(csvRow(["final_total", houseName, address, "", "", "", "", "", "", "", "", "", money(finalTotal), "", "", "", ""]))
+
+        if usingDefaults {
+            rows.append(csvRow(["note", houseName, address, "", "", "", "", "", "Using default product rates", "", "", "", "", "", "", "", ""]))
+        }
+
+        return rows.joined(separator: "\n")
     }
 
-    private func escapeCSV(_ value: String) -> String {
-        if value.contains(",") || value.contains("\"") || value.contains("\n") {
-            return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
-        }
-        return value
+    // MARK: helpers
+
+    private func csvRow(_ values: [String]) -> String {
+        return values.map(escape).joined(separator: ",")
     }
+
+    private func escape(_ v: String) -> String {
+        let escaped = v.replacingOccurrences(of: "\"", with: "\"\"")
+        if escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") {
+            return "\"\(escaped)\""
+        }
+        return escaped
+    }
+
+    private func money(_ v: Double) -> String  { String(format: "%.2f", v) }
+    private func area(_ v: Double) -> String   { String(format: "%.2f", v) }
+    private func percent(_ v: Double) -> String { String(format: "%.1f", v) }
 }
