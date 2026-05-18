@@ -25,15 +25,15 @@ The app allows salespeople to:
 | View Controller | Purpose | Navigates To |
 |---|---|---|
 | `HouseListViewController` | Shows all houses in a table view. Supports search, add, edit (swipe), delete (swipe). Initial VC embedded in UINavigationController. | `HouseEditViewController` (add/edit), `RoomListViewController` (tap row), `QuoteViewController` (Quote button) |
-| `HouseEditViewController` | Form to create or update a house (name + address). Validates non-empty name. | Pops back on save |
-| `RoomListViewController` | Shows all rooms for a house. Supports search, add room (alert), rename (swipe), delete (swipe). | `RoomDetailViewController` (tap row), `QuoteViewController` (Quote button) |
-| `RoomDetailViewController` | Two-section view for a room: Windows (§0) and Floor Spaces (§1). Footer buttons add items. Swipe to delete. | `WindowEditViewController`, `FloorSpaceEditViewController` |
-| `WindowEditViewController` | Form to add/edit a window. Width × Height (cm), product selection, variant, photo from gallery, live price preview. Validates positive dimensions. | `ProductListViewController` (select product), pops on save |
-| `FloorSpaceEditViewController` | Form to add/edit a floor space. Width × Length (cm), product selection, variant, photo from gallery, live price preview. Validates positive dimensions. | `ProductListViewController` (select product), pops on save |
+| `HouseEditViewController` | Form to create or update a house (customer name, address, and a free-form **Notes** field). Validates non-empty name + address. | Pops back on save |
+| `RoomListViewController` | Shows all rooms for a house with thumbnail photos. Supports search, add room (alert), rename, **duplicate** (leading swipe — copies all windows + floors), delete (swipe). | `RoomDetailViewController` (tap row), `QuoteViewController` (Quote button) |
+| `RoomDetailViewController` | Two-section view for a room: Windows (§0) and Floor Spaces (§1). Top header shows the room cover photo (gallery or camera). Footer buttons add items. Swipe to delete. | `WindowEditViewController`, `FloorSpaceEditViewController` |
+| `WindowEditViewController` | Form to add/edit a window. Width × Height (mm, integer), product selection, variant, **camera + gallery** photo, live price preview. Validates 1–20 000 mm dimensions. | `ProductListViewController` (select product), pops on save |
+| `FloorSpaceEditViewController` | Form to add/edit a floor space. Width × Depth (mm, integer), product selection, variant, **camera + gallery** photo, live price preview. Validates dimensions. | `ProductListViewController` (select product), pops on save |
 | `ProductListViewController` | Loads products from KIT305 API filtered by category (window/floor). Supports search. | `ProductVariantViewController` (if product has variants), or fires `onProductSelected` callback and pops |
 | `ProductVariantViewController` | Shows variants for a selected product. Fires `onVariantSelected` callback on selection. | Pops via callback |
-| `QuoteViewController` | Loads all windows + floor spaces across all rooms of a house. Shows itemised list with include/exclude toggles, subtotal, discount (%), total. Share button exports CSV. | UIActivityViewController (share sheet) |
-| `PhotoPickerCoordinator` | Coordinator class (not a VC). Presents `PHPickerViewController` (iOS 14+) or `UIImagePickerController` (fallback) for gallery-only photo selection. Calls `PhotoPickerDelegate`. | — |
+| `QuoteViewController` | Polished per-room sectioned quote with include/exclude switches per room **and** per item. Shows a colored notes banner if the house has notes. Bottom card shows Subtotal / Discount / FINAL TOTAL (monospaced, large purple). Share button exports CSV. | UIActivityViewController (share sheet) |
+| `PhotoPickerCoordinator` | Coordinator class (not a VC). Presents an action sheet with **Take Photo** (UIImagePickerController.camera, when available) and **Choose from Library** (PHPickerViewController on iOS 14+, UIImagePickerController fallback). Calls `PhotoPickerDelegate`. | — |
 
 ### Navigation Flow
 
@@ -130,5 +130,6 @@ Copilot was used as a code assistant; all generated code was reviewed and adapte
 
 - Platform: iOS 16+, tested on iPhone 15 Simulator (iOS 17)
 - No SwiftUI, no Objective-C, no third-party libraries (Firebase only)
-- Photos: Gallery only (PHPickerViewController / UIImagePickerController), no camera
-- Git commit history: 150+ small, meaningful commits tracking feature additions, UI polish, validation, haptic feedback, keyboard handling, empty states, animations, and code quality improvements
+- Photos: Camera **and** Photo Library via `PhotoPickerCoordinator` (action sheet)
+- App icon: programmatically generated purple house glyph (light / dark / tinted variants)
+- Git commit history: 150+ small, meaningful commits tracking the Android schema port, UI polish, validation, haptic feedback, keyboard handling, empty states, animations, custom features, and code quality improvements
