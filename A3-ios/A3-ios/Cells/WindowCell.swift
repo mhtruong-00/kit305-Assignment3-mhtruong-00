@@ -60,18 +60,16 @@ class WindowCell: UITableViewCell {
     }
 
     func configure(with window: WindowItem) {
-        var prodStr = window.productName.isEmpty ? "No product" : window.productName
+        var prodStr = window.selectedProductName.isEmpty ? "No product" : window.selectedProductName
         if window.panelCount > 1 {
             prodStr += " (\(window.panelCount) panels)"
         }
-        let varStr = window.variantName.isEmpty ? "" : "\n\(window.variantName)"
+        let varStr = window.selectedProductVariant.isEmpty ? "" : "\n\(window.selectedProductVariant)"
         let area = String(format: "%.3f sqm", window.areaSqm)
-        infoLabel.text = "\(Int(window.widthCm))W × \(Int(window.heightCm))H cm  [\(area)] — \(prodStr)\(varStr)"
-        if window.pricePerSqm > 0 {
-            priceLabel.text = String(format: "$%.2f", window.itemPrice)
-        } else {
-            priceLabel.text = ""
-        }
+        let namePrefix = window.name.isEmpty ? "" : "\(window.name): "
+        infoLabel.text = "\(namePrefix)\(window.widthMm)W × \(window.heightMm)H mm  [\(area)] — \(prodStr)\(varStr)"
+        // Rate is no longer stored per item; price shown at quote screen.
+        priceLabel.text = ""
         photoIndicator.isHidden = window.photoBase64 == nil
     }
 }
