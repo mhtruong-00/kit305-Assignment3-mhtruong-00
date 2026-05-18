@@ -18,10 +18,10 @@ class FloorSpaceEditViewController: UIViewController {
     private var existingPhotoBase64: String?
     private let photoPicker = PhotoPickerCoordinator()
 
-    // MARK: - Constants
+    // MARK: - Constants (millimetres, matching the Android app)
 
-    private let maxDimensionCm: Double = 2000
-    private let minDimensionCm: Double = 1
+    private let maxDimensionMm: Int = 20_000
+    private let minDimensionMm: Int = 1
 
     // MARK: - UI Elements
 
