@@ -12,6 +12,8 @@ class RoomDetailViewController: UIViewController {
     private var windowListener: ListenerRegistration?
     private var floorListener: ListenerRegistration?
 
+    private let photoPicker = PhotoPickerCoordinator()
+
     private let tableView = UITableView(frame: .zero, style: .grouped)
     private let roomNameLabel: UILabel = {
         let lbl = UILabel()
@@ -20,13 +22,26 @@ class RoomDetailViewController: UIViewController {
         return lbl
     }()
 
+    private let roomPhotoView: UIImageView = {
+        let iv = UIImageView()
+        iv.contentMode = .scaleAspectFill
+        iv.clipsToBounds = true
+        iv.backgroundColor = .systemGray5
+        iv.layer.cornerRadius = 8
+        iv.translatesAutoresizingMaskIntoConstraints = false
+        return iv
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
         title = room.name
         navigationItem.backButtonTitle = ""
+        photoPicker.delegate = self
         setupNavigationBar()
         setupTableView()
+        installRoomPhotoHeader()
+        renderRoomPhoto()
         startListening()
     }
 
@@ -37,10 +52,68 @@ class RoomDetailViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Rename",
-                                                            style: .plain,
-                                                            target: self,
-                                                            action: #selector(renameTapped))
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(title: "Rename", style: .plain, target: self,
+                            action: #selector(renameTapped)),
+            UIBarButtonItem(image: UIImage(systemName: "photo"), style: .plain,
+                            target: self, action: #selector(pickRoomPhoto))
+        ]
+    }
+
+    // MARK: - Room photo header
+
+    private func installRoomPhotoHeader() {
+        let header = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 180))
+        header.addSubview(roomPhotoView)
+        let removeButton = UIButton(type: .system)
+        removeButton.setTitle("Remove Photo", for: .normal)
+        removeButton.setTitleColor(.systemRed, for: .normal)
+        removeButton.translatesAutoresizingMaskIntoConstraints = false
+        removeButton.addTarget(self, action: #selector(removeRoomPhoto), for: .touchUpInside)
+        removeButton.tag = 999
+        header.addSubview(removeButton)
+        NSLayoutConstraint.activate([
+            roomPhotoView.topAnchor.constraint(equalTo: header.topAnchor, constant: 12),
+            roomPhotoView.leadingAnchor.constraint(equalTo: header.leadingAnchor, constant: 16),
+            roomPhotoView.trailingAnchor.constraint(equalTo: header.trailingAnchor, constant: -16),
+            roomPhotoView.heightAnchor.constraint(equalToConstant: 130),
+            removeButton.topAnchor.constraint(equalTo: roomPhotoView.bottomAnchor, constant: 4),
+            removeButton.centerXAnchor.constraint(equalTo: header.centerXAnchor)
+        ])
+        tableView.tableHeaderView = header
+    }
+
+    private func renderRoomPhoto() {
+        let removeBtn = tableView.tableHeaderView?.viewWithTag(999)
+        if let b64 = room.photoBase64, let image = ImageStore.shared.decodeImage(b64) {
+            roomPhotoView.image = image
+            removeBtn?.isHidden = false
+        } else {
+            roomPhotoView.image = UIImage(systemName: "photo")
+            roomPhotoView.tintColor = .systemGray3
+            removeBtn?.isHidden = true
+        }
+    }
+
+    @objc private func pickRoomPhoto() {
+        photoPicker.presentPicker(from: self)
+    }
+
+    @objc private func removeRoomPhoto() {
+        let alert = UIAlertController(title: "Remove Photo",
+                                      message: "Remove the room photo?",
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Remove", style: .destructive) { [weak self] _ in
+            guard let self = self else { return }
+            FirestoreService.shared.updateRoomFields(self.room.id,
+                                                     fields: ["photoBase64": "", "photoUrl": ""]) { _ in
+                self.room.photoBase64 = nil
+                self.room.photoUrl = nil
+                self.renderRoomPhoto()
+            }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
     }
 
     private func setupTableView() {
@@ -206,4 +279,23 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
         }
         return UISwipeActionsConfiguration(actions: [deleteAction])
     }
+}
+
+extension RoomDetailViewController: PhotoPickerDelegate {
+    func photoPickerDidSelectImage(_ image: UIImage) {
+        guard let base64 = ImageStore.shared.encodeImage(image) else { return }
+        FirestoreService.shared.updateRoomFields(room.id,
+                                                 fields: ["photoBase64": base64, "photoUrl": ""]) { [weak self] err in
+            guard let self = self else { return }
+            if let err = err {
+                self.showErrorAlert(err)
+                return
+            }
+            self.room.photoBase64 = base64
+            self.room.photoUrl = nil
+            self.renderRoomPhoto()
+            HapticFeedback.success()
+        }
+    }
+    func photoPickerDidCancel() {}
 }
