@@ -28,12 +28,12 @@ The app allows salespeople to:
 | `HouseEditViewController` | Form to create or update a house (name + address). Validates non-empty name. | Pops back on save |
 | `RoomListViewController` | Shows all rooms for a house. Supports search, add room (alert), rename (swipe), delete (swipe). | `RoomDetailViewController` (tap row), `QuoteViewController` (Quote button) |
 | `RoomDetailViewController` | Two-section view for a room: Windows (§0) and Floor Spaces (§1). Footer buttons add items. Swipe to delete. | `WindowEditViewController`, `FloorSpaceEditViewController` |
-| `WindowEditViewController` | Form to add/edit a window. Name + Width × Height (mm), product selection, variant, photo from gallery/camera, live price preview. Validates dimensions in 1–20000 mm. | `ProductListViewController` (select product), pops on save |
-| `FloorSpaceEditViewController` | Form to add/edit a floor space. Name + Width × Depth (mm), product selection, variant, photo from gallery/camera, live price preview. Validates dimensions in 1–20000 mm. | `ProductListViewController` (select product), pops on save |
+| `WindowEditViewController` | Form to add/edit a window. Width × Height (cm), product selection, variant, photo from gallery, live price preview. Validates positive dimensions. | `ProductListViewController` (select product), pops on save |
+| `FloorSpaceEditViewController` | Form to add/edit a floor space. Width × Length (cm), product selection, variant, photo from gallery, live price preview. Validates positive dimensions. | `ProductListViewController` (select product), pops on save |
 | `ProductListViewController` | Loads products from KIT305 API filtered by category (window/floor). Supports search. | `ProductVariantViewController` (if product has variants), or fires `onProductSelected` callback and pops |
 | `ProductVariantViewController` | Shows variants for a selected product. Fires `onVariantSelected` callback on selection. | Pops via callback |
-| `QuoteViewController` | Loads all windows + floor spaces across all rooms of a house. Shows itemised list with include/exclude toggles, subtotal, discount (%), total. Share button exports CSV. | UIActivityViewController (share sheet) |
-| `PhotoPickerCoordinator` | Coordinator class (not a VC). Presents `PHPickerViewController` (iOS 14+) or `UIImagePickerController` (fallback) for gallery-only photo selection. Calls `PhotoPickerDelegate`. | — |
+| `QuoteViewController` | Loads all rooms + windows + floor spaces for a house, plus the live product rate map from the API. Renders a per-room section with item include/exclude switches and a room include switch. Shows per-room subtotal + $200 labour (when the room has at least one measured included item), discount %, and final total. Share button exports CSV. | UIActivityViewController (share sheet) |
+| `PhotoPickerCoordinator` | Coordinator class (not a VC). Presents an action sheet to choose between Camera (`UIImagePickerController`) and Library (`PHPickerViewController` on iOS 14+, `UIImagePickerController` fallback). Calls `PhotoPickerDelegate`. | — |
 
 ### Navigation Flow
 
