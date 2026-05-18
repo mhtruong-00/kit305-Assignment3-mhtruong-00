@@ -82,11 +82,11 @@ floorspaces/{floorId}
 
 ## Custom Feature: Quote Discount Tool
 
-The `QuoteViewController` includes a **discount field** where the salesperson can enter a percentage discount (0–100%) and Apply / Clear it. When applied, the house subtotal (sum of all included room totals — each is `item costs + $200 labour` when the room has at least one measured included item) is recalculated:
+The `QuoteViewController` includes a **discount field** where the salesperson can enter a percentage discount (0–100%). When applied, the total price is recalculated and displayed as:
 
-> Total: $XX.XX  (–$YY.YY at ZZ.Z%)
+> Total: $XX.XX  (Y% off)
 
-The discount and the per-room breakdown are also reflected in the exported CSV.
+The discount is also reflected in the exported CSV.
 
 ---
 
@@ -131,4 +131,4 @@ Copilot was used as a code assistant; all generated code was reviewed and adapte
 - Platform: iOS 16+, tested on iPhone 15 Simulator (iOS 17)
 - No SwiftUI, no Objective-C, no third-party libraries (Firebase only)
 - Photos: Gallery only (PHPickerViewController / UIImagePickerController), no camera
-- Git commit history: 100+ small, meaningful commits tracking feature additions, UI polish, validation, haptic feedback, keyboard handling, empty states, animations, and code quality improvements
+- Git commit history: 150+ small, meaningful commits tracking feature additions, UI polish, validation, haptic feedback, keyboard handling, empty states, animations, and code quality improvements
