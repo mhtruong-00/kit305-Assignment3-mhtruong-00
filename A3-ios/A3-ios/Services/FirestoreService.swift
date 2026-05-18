@@ -126,6 +126,58 @@ class FirestoreService {
         }
     }
 
+    /// Duplicate a room (and all of its windows + floor spaces) into a new
+    /// "<name> (Copy)" room. Used by the room-list swipe action — saves users
+    /// having to retype every measurement when a layout repeats (e.g. multiple
+    /// identical bedrooms).
+    func duplicateRoom(_ room: Room, completion: @escaping (Error?) -> Void) {
+        var copy = room
+        copy.id = ""
+        copy.name = "\(room.name) (Copy)"
+        let newRef = db.collection("rooms").document()
+        newRef.setData(roomData(from: copy)) { [weak self] err in
+            guard let self = self else { return }
+            if let err = err { completion(err); return }
+            let newRoomId = newRef.documentID
+            let group = DispatchGroup()
+            var firstError: Error?
+
+            group.enter()
+            self.db.collection("windows").whereField("roomId", isEqualTo: room.id)
+                .getDocuments { snap, e in
+                    if let e = e { firstError = e }
+                    let batch = self.db.batch()
+                    for doc in snap?.documents ?? [] {
+                        var data = doc.data()
+                        data["roomId"] = newRoomId
+                        let ref = self.db.collection("windows").document()
+                        batch.setData(data, forDocument: ref)
+                    }
+                    batch.commit { be in
+                        if let be = be { firstError = be }
+                        group.leave()
+                    }
+                }
+            group.enter()
+            self.db.collection("floorspaces").whereField("roomId", isEqualTo: room.id)
+                .getDocuments { snap, e in
+                    if let e = e { firstError = e }
+                    let batch = self.db.batch()
+                    for doc in snap?.documents ?? [] {
+                        var data = doc.data()
+                        data["roomId"] = newRoomId
+                        let ref = self.db.collection("floorspaces").document()
+                        batch.setData(data, forDocument: ref)
+                    }
+                    batch.commit { be in
+                        if let be = be { firstError = be }
+                        group.leave()
+                    }
+                }
+            group.notify(queue: .main) { completion(firstError) }
+        }
+    }
+
     private func roomFrom(doc: QueryDocumentSnapshot) -> Room {
         let data = doc.data()
         return Room(

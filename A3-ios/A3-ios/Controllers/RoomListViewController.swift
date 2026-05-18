@@ -174,6 +174,26 @@ class RoomListViewController: UITableViewController {
         return UISwipeActionsConfiguration(actions: [deleteAction, renameAction])
     }
 
+    override func tableView(_ tableView: UITableView,
+                             leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let room = displayedRooms[indexPath.row]
+        let duplicateAction = UIContextualAction(style: .normal, title: "Duplicate") { [weak self] _, _, completion in
+            guard let self = self else { completion(false); return }
+            FirestoreService.shared.duplicateRoom(room) { error in
+                if let error = error {
+                    self.showAlert(title: "Couldn't duplicate", message: error.localizedDescription)
+                    completion(false)
+                } else {
+                    HapticFeedback.success()
+                    completion(true)
+                }
+            }
+        }
+        duplicateAction.backgroundColor = .systemTeal
+        duplicateAction.image = UIImage(systemName: "doc.on.doc")
+        return UISwipeActionsConfiguration(actions: [duplicateAction])
+    }
+
     private func renameRoom(_ room: Room) {
         let alert = UIAlertController(title: "Rename Room", message: nil, preferredStyle: .alert)
         alert.addTextField { tf in
