@@ -89,7 +89,13 @@ class RoomListViewController: UITableViewController {
             self?.rooms = rooms
             self?.tableView.reloadData()
             self?.updateEmptyState()
+            self?.updateNavPrompt()
         }
+    }
+
+    private func updateNavPrompt() {
+        // Mirrors the Android "Rooms: N" header label.
+        navigationItem.prompt = "Rooms: \(rooms.count)"
     }
 
     @objc private func addRoomTapped() {
