@@ -11,7 +11,8 @@ class CSVExporter {
                      address: String,
                      roomQuotes: [RoomQuote],
                      discountPercent: Double,
-                     usingDefaults: Bool) -> String {
+                     usingDefaults: Bool,
+                     notes: String = "") -> String {
 
         var rows: [String] = []
         rows.append(csvRow([
@@ -63,6 +64,10 @@ class CSVExporter {
 
         if usingDefaults {
             rows.append(csvRow(["note", houseName, address, "", "", "", "", "", "Using default product rates", "", "", "", "", "", "", "", ""]))
+        }
+        let trimmedNotes = notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedNotes.isEmpty {
+            rows.append(csvRow(["notes", houseName, address, "", "", "", "", "", trimmedNotes, "", "", "", "", "", "", "", ""]))
         }
 
         return rows.joined(separator: "\n")

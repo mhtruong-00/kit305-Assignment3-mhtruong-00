@@ -328,7 +328,8 @@ class QuoteViewController: UIViewController {
             address: house.address,
             roomQuotes: roomQuotes,
             discountPercent: discountPercent,
-            usingDefaults: usingDefaults)
+            usingDefaults: usingDefaults,
+            notes: house.notes)
         let date = DateFormatter.timestampFormatter.string(from: Date())
         let safeName = house.name.replacingOccurrences(of: " ", with: "_").nonEmpty ?? "quote"
         let tempURL = FileManager.default.temporaryDirectory
