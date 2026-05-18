@@ -22,7 +22,7 @@ class HouseEditViewController: UIViewController {
 
     private let addressField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Address (optional)"
+        tf.placeholder = "Address"
         tf.borderStyle = .roundedRect
         tf.autocapitalizationType = .words
         tf.translatesAutoresizingMaskIntoConstraints = false
@@ -127,12 +127,27 @@ class HouseEditViewController: UIViewController {
     @objc private func saveTapped() {
         guard let name = nameField.text?.trimmingCharacters(in: .whitespaces), !name.isEmpty else {
             nameField.becomeFirstResponder()
-            showAlert(title: "Name Required", message: "Please enter a house name before saving.")
+            showAlert(title: "Name Required", message: "Please enter a customer name before saving.")
             HapticFeedback.error()
             return
         }
         let trimmedName = name
         let address = addressField.text?.trimmingCharacters(in: .whitespaces) ?? ""
+
+        // Match the Android validation: address required AND must contain at least one letter
+        // (prevents numeric-only entries like "12345").
+        if address.isEmpty {
+            addressField.becomeFirstResponder()
+            showAlert(title: "Address Required", message: "Please enter an address.")
+            HapticFeedback.error()
+            return
+        }
+        if !address.contains(where: { $0.isLetter }) {
+            addressField.becomeFirstResponder()
+            showAlert(title: "Invalid Address", message: "Address must contain at least one letter.")
+            HapticFeedback.error()
+            return
+        }
 
         switch mode {
         case .add:
