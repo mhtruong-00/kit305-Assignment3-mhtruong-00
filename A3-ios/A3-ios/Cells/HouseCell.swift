@@ -46,12 +46,7 @@ class HouseCell: UITableViewCell {
     }
 
     func configure(with house: House) {
-        nameLabel.text = house.name
-        let dateStr = DateFormatter.displayFormatter.string(from: house.createdAt)
-        if house.address.isEmpty {
-            addressLabel.text = "Created \(dateStr)"
-        } else {
-            addressLabel.text = house.address
-        }
+        nameLabel.text = house.name.isEmpty ? "Unnamed Customer" : house.name
+        addressLabel.text = house.address.isEmpty ? "No address" : house.address
     }
 }
