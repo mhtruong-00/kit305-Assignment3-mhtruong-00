@@ -122,6 +122,8 @@ class RoomDetailViewController: UIViewController {
         tableView.dataSource = self
         tableView.register(WindowCell.self, forCellReuseIdentifier: WindowCell.reuseIdentifier)
         tableView.register(FloorSpaceCell.self, forCellReuseIdentifier: FloorSpaceCell.reuseIdentifier)
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 72
         view.addSubview(tableView)
         NSLayoutConstraint.activate([
             tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -279,23 +281,4 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
         }
         return UISwipeActionsConfiguration(actions: [deleteAction])
     }
-}
-
-extension RoomDetailViewController: PhotoPickerDelegate {
-    func photoPickerDidSelectImage(_ image: UIImage) {
-        guard let base64 = ImageStore.shared.encodeImage(image) else { return }
-        FirestoreService.shared.updateRoomFields(room.id,
-                                                 fields: ["photoBase64": base64, "photoUrl": ""]) { [weak self] err in
-            guard let self = self else { return }
-            if let err = err {
-                self.showErrorAlert(err)
-                return
-            }
-            self.room.photoBase64 = base64
-            self.room.photoUrl = nil
-            self.renderRoomPhoto()
-            HapticFeedback.success()
-        }
-    }
-    func photoPickerDidCancel() {}
 }
