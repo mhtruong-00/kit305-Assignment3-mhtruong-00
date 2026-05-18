@@ -48,13 +48,15 @@ enum CompatibilityChecker {
         if widthMm > 0 {
             let maxPanels = max(1, product.maxPanelCount)
             for panels in 1...maxPanels {
-                let panelWidth = widthMm / panels
-                if panelWidth >= product.minWidth && panelWidth <= product.maxWidth {
+                // Use floating-point division to match the Android implementation,
+                // so widths that don't divide evenly still pass when within range.
+                let panelWidth = Double(widthMm) / Double(panels)
+                if panelWidth >= Double(product.minWidth) && panelWidth <= Double(product.maxWidth) {
                     let message: String
                     if panels == 1 {
                         message = "Single panel — \(widthMm)mm wide"
                     } else {
-                        message = "\(panels) panels — each ~\(panelWidth)mm wide"
+                        message = "\(panels) panels — each ~\(Int(panelWidth.rounded()))mm wide"
                     }
                     return CompatibilityResult(compatible: true, panelCount: panels, message: message)
                 }
