@@ -80,7 +80,8 @@ class QuoteLineCell: UITableViewCell {
         roomLabel.text = "\(typeIcon) \(item.roomName.uppercased())"
         let varStr = item.variantName.isEmpty ? "" : " — \(item.variantName)"
         let typeStr = item.typeLabel
-        descriptionLabel.text = "\(typeStr): \(item.dimensionLabel)\n\(item.productName)\(varStr)"
+        let namePart = item.itemName.isEmpty ? "" : " “\(item.itemName)”"
+        descriptionLabel.text = "\(typeStr)\(namePart): \(item.dimensionLabel)\n\(item.productName)\(varStr)"
         priceLabel.text = item.isIncluded ? item.priceLabel : "-"
         priceLabel.textColor = item.isIncluded ? .systemGreen : .secondaryLabel
         includeSwitch.isOn = item.isIncluded
