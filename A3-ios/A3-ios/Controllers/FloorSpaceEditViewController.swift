@@ -34,19 +34,27 @@ class FloorSpaceEditViewController: UIViewController {
         return sv
     }()
 
+    private let nameField: UITextField = {
+        let tf = UITextField()
+        tf.placeholder = "Floor space name (e.g. Main floor)"
+        tf.borderStyle = .roundedRect
+        tf.autocapitalizationType = .words
+        return tf
+    }()
+
     private let widthField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Width (cm)"
+        tf.placeholder = "Width (mm)"
         tf.borderStyle = .roundedRect
-        tf.keyboardType = .decimalPad
+        tf.keyboardType = .numberPad
         return tf
     }()
 
     private let lengthField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Length (cm)"
+        tf.placeholder = "Depth (mm)"
         tf.borderStyle = .roundedRect
-        tf.keyboardType = .decimalPad
+        tf.keyboardType = .numberPad
         return tf
     }()
 
@@ -178,7 +186,8 @@ class FloorSpaceEditViewController: UIViewController {
 
         photoImageView.heightAnchor.constraint(equalToConstant: 150).isActive = true
 
-        [makeLabel("Dimensions (cm)"), dimStack,
+        [makeLabel("Name"), nameField,
+         makeLabel("Dimensions (mm)"), dimStack,
          makeLabel("Product"), productLabel, selectProductButton,
          makeLabel("Photo"), photoImageView, selectPhotoButton, removePhotoButton,
          priceLabel, saveButton
