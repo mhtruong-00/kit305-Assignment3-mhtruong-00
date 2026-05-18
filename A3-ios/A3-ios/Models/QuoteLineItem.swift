@@ -24,6 +24,9 @@ struct QuoteLineItem {
     var panelCount: Int
     var pricePerSqm: Double
     var isIncluded: Bool
+    /// True when no product was selected for this item OR the API did not return
+    /// a rate for the chosen product, so a default fallback was applied.
+    var usedDefaultRate: Bool
 
     var areaSqm: Double {
         return (Double(widthMm) / 1000.0) * (Double(heightOrDepthMm) / 1000.0)
@@ -50,7 +53,8 @@ struct QuoteLineItem {
          itemType: QuoteItemType = .window, itemName: String = "",
          productId: String = "", productName: String = "", variantName: String = "",
          widthMm: Int = 0, heightOrDepthMm: Int = 0,
-         panelCount: Int = 1, pricePerSqm: Double = 0, isIncluded: Bool = true) {
+         panelCount: Int = 1, pricePerSqm: Double = 0,
+         isIncluded: Bool = true, usedDefaultRate: Bool = false) {
         self.id = id
         self.roomId = roomId
         self.roomName = roomName
@@ -64,5 +68,6 @@ struct QuoteLineItem {
         self.panelCount = panelCount
         self.pricePerSqm = pricePerSqm
         self.isIncluded = isIncluded
+        self.usedDefaultRate = usedDefaultRate
     }
 }

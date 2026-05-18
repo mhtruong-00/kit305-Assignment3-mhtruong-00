@@ -48,9 +48,9 @@ class QuoteCalculator {
             var items: [QuoteLineItem] = []
 
             for w in windowsByRoom[room.id] ?? [] {
-                let rate = resolveRate(productId: w.selectedProductId,
-                                       rates: productRates,
-                                       defaultRate: Self.defaultWindowRate)
+                let (rate, isDefault) = resolveRate(productId: w.selectedProductId,
+                                                    rates: productRates,
+                                                    defaultRate: Self.defaultWindowRate)
                 items.append(QuoteLineItem(
                     id: w.id,
                     roomId: room.id,
@@ -64,13 +64,14 @@ class QuoteCalculator {
                     heightOrDepthMm: w.heightMm,
                     panelCount: w.panelCount,
                     pricePerSqm: rate,
-                    isIncluded: true
+                    isIncluded: true,
+                    usedDefaultRate: isDefault
                 ))
             }
             for f in floorsByRoom[room.id] ?? [] {
-                let rate = resolveRate(productId: f.selectedProductId,
-                                       rates: productRates,
-                                       defaultRate: Self.defaultFloorRate)
+                let (rate, isDefault) = resolveRate(productId: f.selectedProductId,
+                                                    rates: productRates,
+                                                    defaultRate: Self.defaultFloorRate)
                 items.append(QuoteLineItem(
                     id: f.id,
                     roomId: room.id,
@@ -84,7 +85,8 @@ class QuoteCalculator {
                     heightOrDepthMm: f.depthMm,
                     panelCount: 1,
                     pricePerSqm: rate,
-                    isIncluded: true
+                    isIncluded: true,
+                    usedDefaultRate: isDefault
                 ))
             }
 
@@ -112,8 +114,9 @@ class QuoteCalculator {
 
     private func resolveRate(productId: String,
                              rates: [String: Double],
-                             defaultRate: Double) -> Double {
-        if productId.isEmpty { return defaultRate }
-        return rates[productId] ?? defaultRate
+                             defaultRate: Double) -> (Double, Bool) {
+        if productId.isEmpty { return (defaultRate, true) }
+        if let rate = rates[productId] { return (rate, false) }
+        return (defaultRate, true)
     }
 }
