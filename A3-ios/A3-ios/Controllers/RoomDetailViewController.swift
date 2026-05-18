@@ -59,11 +59,11 @@ class RoomDetailViewController: UIViewController {
     }
 
     private func startListening() {
-        windowListener = FirestoreService.shared.listenToWindows(houseId: house.id, roomId: room.id) { [weak self] items in
+        windowListener = FirestoreService.shared.listenToWindows(roomId: room.id) { [weak self] items in
             self?.windows = items
             self?.tableView.reloadSections(IndexSet(integer: 0), with: .automatic)
         }
-        floorListener = FirestoreService.shared.listenToFloorSpaces(houseId: house.id, roomId: room.id) { [weak self] items in
+        floorListener = FirestoreService.shared.listenToFloorSpaces(roomId: room.id) { [weak self] items in
             self?.floors = items
             self?.tableView.reloadSections(IndexSet(integer: 1), with: .automatic)
         }
@@ -81,7 +81,7 @@ class RoomDetailViewController: UIViewController {
                   !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
             self.room.name = name.trimmingCharacters(in: .whitespaces)
             self.title = self.room.name
-            FirestoreService.shared.updateRoom(self.room, houseId: self.house.id) { _ in }
+            FirestoreService.shared.updateRoom(self.room) { _ in }
         })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         present(alert, animated: true)
@@ -186,7 +186,7 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
                 let window = self.windows[indexPath.row]
                 let alert = UIAlertController(title: "Delete Window", message: "Delete this window?", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
-                    FirestoreService.shared.deleteWindow(window.id, houseId: self.house.id, roomId: self.room.id) { error in
+                    FirestoreService.shared.deleteWindow(window.id) { error in
                         completion(error == nil)
                     }
                 })
@@ -196,7 +196,7 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
                 let floor = self.floors[indexPath.row]
                 let alert = UIAlertController(title: "Delete Floor Space", message: "Delete this floor space?", preferredStyle: .alert)
                 alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
-                    FirestoreService.shared.deleteFloorSpace(floor.id, houseId: self.house.id, roomId: self.room.id) { error in
+                    FirestoreService.shared.deleteFloorSpace(floor.id) { error in
                         completion(error == nil)
                     }
                 })
