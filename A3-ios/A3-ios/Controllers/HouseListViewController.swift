@@ -93,7 +93,13 @@ class HouseListViewController: UITableViewController {
                               animations: { self.tableView.reloadData() },
                               completion: nil)
             self.updateEmptyState()
+            self.updateNavPrompt()
         }
+    }
+
+    private func updateNavPrompt() {
+        // Mirrors the Android "Houses: N" header label.
+        navigationItem.prompt = "Houses: \(houses.count)"
     }
 
     @objc private func addHouseTapped() {
