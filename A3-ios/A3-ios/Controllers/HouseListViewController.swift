@@ -71,12 +71,25 @@ class HouseListViewController: UITableViewController {
         tableView.estimatedRowHeight = 60
         tableView.separatorInset = UIEdgeInsets(top: 0, left: 16, bottom: 0, right: 0)
 
+        let refresh = UIRefreshControl()
+        refresh.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
+        tableView.refreshControl = refresh
+
         tableView.backgroundView = emptyLabel
         NSLayoutConstraint.activate([
             emptyLabel.centerXAnchor.constraint(equalTo: tableView.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: tableView.centerYAnchor),
             emptyLabel.widthAnchor.constraint(equalTo: tableView.widthAnchor, multiplier: 0.8)
         ])
+    }
+
+    @objc private func handleRefresh() {
+        // The snapshot listener already keeps data fresh; just give the
+        // user the satisfying pull-to-refresh feedback and reset the spinner.
+        startListening()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.tableView.refreshControl?.endRefreshing()
+        }
     }
 
     private func updateEmptyState() {
