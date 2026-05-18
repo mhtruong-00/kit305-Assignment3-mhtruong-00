@@ -16,3 +16,8 @@ extension UIViewController {
         present(alert, animated: true)
     }
 }
+
+extension String {
+    /// Returns the string if non-empty, otherwise nil. Handy for `?? fallback`.
+    var nonEmpty: String? { isEmpty ? nil : self }
+}
