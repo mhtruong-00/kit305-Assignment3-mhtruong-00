@@ -200,10 +200,15 @@ class HouseListViewController: UITableViewController {
 // MARK: - UISearchResultsUpdating
 extension HouseListViewController: UISearchResultsUpdating {
     func updateSearchResults(for searchController: UISearchController) {
-        let query = searchController.searchBar.text?.lowercased() ?? ""
-        filteredHouses = houses.filter {
-            $0.name.lowercased().contains(query) || $0.address.lowercased().contains(query)
+        let query = searchController.searchBar.text?.lowercased().trimmingCharacters(in: .whitespaces) ?? ""
+        if query.isEmpty {
+            filteredHouses = houses
+        } else {
+            filteredHouses = houses.filter {
+                $0.name.lowercased().contains(query) || $0.address.lowercased().contains(query)
+            }
         }
         tableView.reloadData()
+        updateEmptyState()
     }
 }
