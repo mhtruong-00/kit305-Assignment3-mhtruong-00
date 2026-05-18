@@ -60,15 +60,12 @@ class FloorSpaceCell: UITableViewCell {
     }
 
     func configure(with floor: FloorSpace) {
-        let prodStr = floor.productName.isEmpty ? "No product" : floor.productName
-        let varStr = floor.variantName.isEmpty ? "" : "\n\(floor.variantName)"
+        let prodStr = floor.selectedProductName.isEmpty ? "No product" : floor.selectedProductName
+        let varStr = floor.selectedProductVariant.isEmpty ? "" : "\n\(floor.selectedProductVariant)"
         let area = String(format: "%.3f sqm", floor.areaSqm)
-        infoLabel.text = "\(Int(floor.widthCm))W × \(Int(floor.lengthCm))L cm  [\(area)] — \(prodStr)\(varStr)"
-        if floor.pricePerSqm > 0 {
-            priceLabel.text = String(format: "$%.2f", floor.itemPrice)
-        } else {
-            priceLabel.text = ""
-        }
+        let namePrefix = floor.name.isEmpty ? "" : "\(floor.name): "
+        infoLabel.text = "\(namePrefix)\(floor.widthMm)W × \(floor.depthMm)D mm  [\(area)] — \(prodStr)\(varStr)"
+        priceLabel.text = ""
         photoIndicator.isHidden = floor.photoBase64 == nil
     }
 }
