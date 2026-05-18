@@ -29,6 +29,26 @@ class HouseEditViewController: UIViewController {
         return tf
     }()
 
+    private let notesView: UITextView = {
+        let tv = UITextView()
+        tv.font = UIFont.systemFont(ofSize: 15)
+        tv.layer.borderWidth = 1
+        tv.layer.borderColor = UIColor.systemGray4.cgColor
+        tv.layer.cornerRadius = 6
+        tv.translatesAutoresizingMaskIntoConstraints = false
+        return tv
+    }()
+
+    private let notesPlaceholder: UILabel = {
+        let lbl = UILabel()
+        lbl.text = "e.g. preferred install date, style preferences, contact details…"
+        lbl.font = UIFont.systemFont(ofSize: 14)
+        lbl.textColor = .placeholderText
+        lbl.numberOfLines = 0
+        lbl.translatesAutoresizingMaskIntoConstraints = false
+        return lbl
+    }()
+
     private let saveButton: UIButton = {
         let btn = UIButton(type: .system)
         btn.setTitle("Save", for: .normal)
@@ -65,11 +85,15 @@ class HouseEditViewController: UIViewController {
 
         let nameLabel = makeLabel("Customer / House Name")
         let addressLabel = makeLabel("Address")
+        let notesLabel = makeLabel("Notes (optional)")
 
         view.addSubview(nameLabel)
         view.addSubview(nameField)
         view.addSubview(addressLabel)
         view.addSubview(addressField)
+        view.addSubview(notesLabel)
+        view.addSubview(notesView)
+        notesView.addSubview(notesPlaceholder)
         view.addSubview(saveButton)
         view.addSubview(cancelButton)
 
@@ -88,7 +112,19 @@ class HouseEditViewController: UIViewController {
             addressField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             addressField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             addressField.heightAnchor.constraint(equalToConstant: 44),
-            saveButton.topAnchor.constraint(equalTo: addressField.bottomAnchor, constant: 32),
+
+            notesLabel.topAnchor.constraint(equalTo: addressField.bottomAnchor, constant: 16),
+            notesLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            notesLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            notesView.topAnchor.constraint(equalTo: notesLabel.bottomAnchor, constant: 6),
+            notesView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            notesView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            notesView.heightAnchor.constraint(equalToConstant: 110),
+            notesPlaceholder.topAnchor.constraint(equalTo: notesView.topAnchor, constant: 8),
+            notesPlaceholder.leadingAnchor.constraint(equalTo: notesView.leadingAnchor, constant: 6),
+            notesPlaceholder.trailingAnchor.constraint(equalTo: notesView.trailingAnchor, constant: -6),
+
+            saveButton.topAnchor.constraint(equalTo: notesView.bottomAnchor, constant: 24),
             saveButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             saveButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             saveButton.heightAnchor.constraint(equalToConstant: 50),
@@ -96,6 +132,7 @@ class HouseEditViewController: UIViewController {
             cancelButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
 
+        notesView.delegate = self
         saveButton.addTarget(self, action: #selector(saveTapped), for: .touchUpInside)
         cancelButton.addTarget(self, action: #selector(cancelTapped), for: .touchUpInside)
     }
@@ -104,6 +141,8 @@ class HouseEditViewController: UIViewController {
         if case .edit(let house) = mode {
             nameField.text = house.name
             addressField.text = house.address
+            notesView.text = house.notes
+            notesPlaceholder.isHidden = !house.notes.isEmpty
         }
     }
 
@@ -151,7 +190,7 @@ class HouseEditViewController: UIViewController {
 
         switch mode {
         case .add:
-            let house = House(name: trimmedName, address: address)
+            let house = House(name: trimmedName, address: address, notes: notesView.text ?? "")
             FirestoreService.shared.addHouse(house) { [weak self] error in
                 if let error = error {
                     self?.showAlert(title: "Error", message: error.localizedDescription)
@@ -164,6 +203,7 @@ class HouseEditViewController: UIViewController {
         case .edit(var house):
             house.name = trimmedName
             house.address = address
+            house.notes = notesView.text ?? ""
             FirestoreService.shared.updateHouse(house) { [weak self] error in
                 if let error = error {
                     self?.showAlert(title: "Error", message: error.localizedDescription)
@@ -180,5 +220,11 @@ class HouseEditViewController: UIViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+}
+
+extension HouseEditViewController: UITextViewDelegate {
+    func textViewDidChange(_ textView: UITextView) {
+        notesPlaceholder.isHidden = !(textView.text ?? "").isEmpty
     }
 }

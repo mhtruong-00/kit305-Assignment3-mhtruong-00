@@ -68,14 +68,16 @@ class FirestoreService {
         return House(
             id: doc.documentID,
             name: data["customerName"] as? String ?? "",
-            address: data["address"] as? String ?? ""
+            address: data["address"] as? String ?? "",
+            notes: data["notes"] as? String ?? ""
         )
     }
 
     private func houseData(from house: House) -> [String: Any] {
         return [
             "customerName": house.name,
-            "address": house.address
+            "address": house.address,
+            "notes": house.notes
         ]
     }
 
