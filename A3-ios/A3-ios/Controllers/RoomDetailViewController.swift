@@ -282,3 +282,25 @@ extension RoomDetailViewController: UITableViewDelegate, UITableViewDataSource {
         return UISwipeActionsConfiguration(actions: [deleteAction])
     }
 }
+
+// MARK: - PhotoPickerDelegate (room cover photo)
+extension RoomDetailViewController: PhotoPickerDelegate {
+    func photoPickerDidSelectImage(_ image: UIImage) {
+        guard let base64 = ImageStore.shared.encodeImage(image) else {
+            showAlert(title: "Photo Error", message: "Couldn't encode that image — please try a smaller one.")
+            return
+        }
+        FirestoreService.shared.updateRoomFields(room.id,
+                                                 fields: ["photoBase64": base64]) { [weak self] error in
+            guard let self = self else { return }
+            if let error = error {
+                self.showAlert(title: "Save Failed", message: error.localizedDescription)
+            } else {
+                self.room.photoBase64 = base64
+                self.renderRoomPhoto()
+                HapticFeedback.success()
+            }
+        }
+    }
+    func photoPickerDidCancel() { /* no-op */ }
+}
