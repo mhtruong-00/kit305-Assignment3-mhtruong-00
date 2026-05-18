@@ -32,8 +32,8 @@ The app allows salespeople to:
 | `FloorSpaceEditViewController` | Form to add/edit a floor space. Width × Length (cm), product selection, variant, photo from gallery, live price preview. Validates positive dimensions. | `ProductListViewController` (select product), pops on save |
 | `ProductListViewController` | Loads products from KIT305 API filtered by category (window/floor). Supports search. | `ProductVariantViewController` (if product has variants), or fires `onProductSelected` callback and pops |
 | `ProductVariantViewController` | Shows variants for a selected product. Fires `onVariantSelected` callback on selection. | Pops via callback |
-| `QuoteViewController` | Loads all rooms + windows + floor spaces for a house, plus the live product rate map from the API. Renders a per-room section with item include/exclude switches and a room include switch. Shows per-room subtotal + $200 labour (when the room has at least one measured included item), discount %, and final total. Share button exports CSV. | UIActivityViewController (share sheet) |
-| `PhotoPickerCoordinator` | Coordinator class (not a VC). Presents an action sheet to choose between Camera (`UIImagePickerController`) and Library (`PHPickerViewController` on iOS 14+, `UIImagePickerController` fallback). Calls `PhotoPickerDelegate`. | — |
+| `QuoteViewController` | Loads all windows + floor spaces across all rooms of a house. Shows itemised list with include/exclude toggles, subtotal, discount (%), total. Share button exports CSV. | UIActivityViewController (share sheet) |
+| `PhotoPickerCoordinator` | Coordinator class (not a VC). Presents `PHPickerViewController` (iOS 14+) or `UIImagePickerController` (fallback) for gallery-only photo selection. Calls `PhotoPickerDelegate`. | — |
 
 ### Navigation Flow
 
@@ -82,11 +82,11 @@ floorspaces/{floorId}
 
 ## Custom Feature: Quote Discount Tool
 
-The `QuoteViewController` includes a **discount field** where the salesperson can enter a percentage discount (0–100%). When applied, the total price is recalculated and displayed as:
+The `QuoteViewController` includes a **discount field** where the salesperson can enter a percentage discount (0–100%) and Apply / Clear it. When applied, the house subtotal (sum of all included room totals — each is `item costs + $200 labour` when the room has at least one measured included item) is recalculated:
 
-> Total: $XX.XX  (Y% off)
+> Total: $XX.XX  (–$YY.YY at ZZ.Z%)
 
-The discount is also reflected in the exported CSV.
+The discount and the per-room breakdown are also reflected in the exported CSV.
 
 ---
 
