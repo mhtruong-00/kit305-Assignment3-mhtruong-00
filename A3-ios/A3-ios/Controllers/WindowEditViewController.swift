@@ -35,19 +35,27 @@ class WindowEditViewController: UIViewController {
         return sv
     }()
 
+    private let nameField: UITextField = {
+        let tf = UITextField()
+        tf.placeholder = "Window name (e.g. Living Room Bay)"
+        tf.borderStyle = .roundedRect
+        tf.autocapitalizationType = .words
+        return tf
+    }()
+
     private let widthField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Width (cm)"
+        tf.placeholder = "Width (mm)"
         tf.borderStyle = .roundedRect
-        tf.keyboardType = .decimalPad
+        tf.keyboardType = .numberPad
         return tf
     }()
 
     private let heightField: UITextField = {
         let tf = UITextField()
-        tf.placeholder = "Height (cm)"
+        tf.placeholder = "Height (mm)"
         tf.borderStyle = .roundedRect
-        tf.keyboardType = .decimalPad
+        tf.keyboardType = .numberPad
         return tf
     }()
 
