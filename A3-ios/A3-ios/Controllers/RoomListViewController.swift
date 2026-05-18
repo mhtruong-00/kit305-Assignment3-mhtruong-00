@@ -103,7 +103,7 @@ class RoomListViewController: UITableViewController {
                   let name = alert.textFields?.first?.text,
                   !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
             let room = Room(houseId: self.house.id, name: name.trimmingCharacters(in: .whitespaces))
-            FirestoreService.shared.addRoom(room, houseId: self.house.id) { error in
+            FirestoreService.shared.addRoom(room) { error in
                 if let error = error {
                     self.showAlert(title: "Error", message: error.localizedDescription)
                 }
@@ -153,7 +153,7 @@ class RoomListViewController: UITableViewController {
                                           message: "Delete \"\(room.name)\"?",
                                           preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
-                FirestoreService.shared.deleteRoom(room.id, houseId: self.house.id) { error in
+                FirestoreService.shared.deleteRoom(room.id) { error in
                     completion(error == nil)
                 }
             })
@@ -180,7 +180,7 @@ class RoomListViewController: UITableViewController {
                   !name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
             var updated = room
             updated.name = name.trimmingCharacters(in: .whitespaces)
-            FirestoreService.shared.updateRoom(updated, houseId: self.house.id) { error in
+            FirestoreService.shared.updateRoom(updated) { error in
                 if let error = error {
                     self.showAlert(title: "Error", message: error.localizedDescription)
                 }
