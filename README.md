@@ -57,18 +57,25 @@ UINavigationController
 
 ## Firebase / Firestore Structure
 
+Flat top-level collections (mirrors the Android assignment 2 schema so both
+apps can share the same database):
+
 ```
 houses/{houseId}
-  name, address, createdAt
+  customerName, address
 
-houses/{houseId}/rooms/{roomId}
-  name, createdAt
+rooms/{roomId}
+  houseId, name, photoBase64, photoUrl
 
-houses/{houseId}/rooms/{roomId}/windows/{windowId}
-  widthCm, heightCm, productId, variantId, productName, variantName, pricePerSqm, photoBase64
+windows/{windowId}
+  roomId, name, widthMm (Int), heightMm (Int),
+  selectedProductId, selectedProductName, selectedProductVariant,
+  panelCount (Int), photoBase64
 
-houses/{houseId}/rooms/{roomId}/floors/{floorId}
-  widthCm, lengthCm, productId, variantId, productName, variantName, pricePerSqm, photoBase64
+floorspaces/{floorId}
+  roomId, name, widthMm (Int), depthMm (Int),
+  selectedProductId, selectedProductName, selectedProductVariant,
+  photoBase64
 ```
 
 ---
