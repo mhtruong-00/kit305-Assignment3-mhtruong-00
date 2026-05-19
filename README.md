@@ -6,6 +6,17 @@
 
 > ⚠️ **Marker Note:** Before running the app, replace `A3-ios/A3-ios/GoogleService-Info.plist` with your real `GoogleService-Info.plist` downloaded from the Firebase Console for your Firestore project. The placeholder file in this repo will cause Firebase to fail to initialise.
 
+### Bundle Identifier (after cloning)
+
+All targets ship with the bundle id prefix **`au.edu.utas.kit305.A3`** (app = `au.edu.utas.kit305.A3`, tests = `au.edu.utas.kit305.A3.A3-iosTests`, UI tests = `au.edu.utas.kit305.A3.A3-iosUITests`). This matches the included `GoogleService-Info.plist`.
+
+If Xcode rewrites the bundle id automatically when you open the project with your own Apple ID (because the id is already registered to another developer account on App Store Connect), set it back manually:
+
+1. Select the project in the Project Navigator → **A3-ios** target → **Signing & Capabilities**.
+2. Change **Bundle Identifier** back to `au.edu.utas.kit305.A3`.
+3. Select **Team = None** (the simulator does not need signing) — or, if you must sign for a real device, leave your team selected but **uncheck "Automatically manage signing"** to stop Xcode from rewriting the id.
+4. Repeat for the `A3-iosTests` and `A3-iosUITests` targets if needed.
+
 ---
 
 ## App Overview
