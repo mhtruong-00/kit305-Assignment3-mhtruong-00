@@ -45,6 +45,7 @@ class HouseEditViewController: UIViewController {
         lbl.font = UIFont.systemFont(ofSize: 14)
         lbl.textColor = .placeholderText
         lbl.numberOfLines = 0
+        lbl.isUserInteractionEnabled = false      // let taps pass through to the UITextView
         lbl.translatesAutoresizingMaskIntoConstraints = false
         return lbl
     }()
@@ -74,6 +75,7 @@ class HouseEditViewController: UIViewController {
         populateIfEditing()
 
         let tap = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tap.cancelsTouchesInView = false          // don't swallow taps meant for text fields/views
         view.addGestureRecognizer(tap)
     }
 
