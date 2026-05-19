@@ -162,7 +162,11 @@ class HouseListViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: HouseCell.reuseIdentifier, for: indexPath) as! HouseCell
-        cell.configure(with: displayedHouses[indexPath.row])
+        let house = displayedHouses[indexPath.row]
+        cell.configure(with: house)
+        cell.onNotesTapped = { [weak self] in
+            self?.editHouse(house)
+        }
         return cell
     }
 
