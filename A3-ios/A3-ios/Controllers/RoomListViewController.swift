@@ -63,6 +63,8 @@ class RoomListViewController: UITableViewController {
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = "Search rooms"
         navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        if #available(iOS 16.0, *) { navigationItem.preferredSearchBarPlacement = .stacked }
         definesPresentationContext = true
     }
 
