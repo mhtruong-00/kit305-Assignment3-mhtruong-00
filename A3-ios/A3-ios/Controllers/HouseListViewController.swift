@@ -62,6 +62,8 @@ class HouseListViewController: UITableViewController {
         searchController.obscuresBackgroundDuringPresentation = false
         searchController.searchBar.placeholder = "Search houses"
         navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = false
+        if #available(iOS 16.0, *) { navigationItem.preferredSearchBarPlacement = .stacked }
         definesPresentationContext = true
     }
 
